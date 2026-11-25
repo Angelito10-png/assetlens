@@ -15,8 +15,11 @@ Score any cryptocurrency from 1 to 10 for **your** investor profile (aggressive,
 3. Seven factors are scored from 0 to 10 with fixed, documented thresholds.
 4. Your profile decides how much each factor counts. The weighted average becomes a 1 to 10 score with a verdict (strong fit, good fit, mixed, weak fit, poor fit).
 5. You get risk flags, recommendations for your profile, and the same coin's score under the other two profiles.
+6. **Adjust weights** with sliders and watch the score recompute live, or start from any profile and tune it.
+7. A **radar chart** shows the coin's shape across the seven factors at a glance.
+8. **Compare** up to three coins side by side: overlaid radar shapes plus a table of every score, with the best value in each row marked.
 
-Results are shareable: the URL carries the coin and profile, for example `?coin=ethereum&profile=defensive`.
+Results are shareable: the URL carries the coin, profile, custom weights and compared coins, for example `?coin=ethereum&profile=defensive&vs=solana,chainlink`.
 
 ## Scoring model
 
@@ -41,14 +44,14 @@ Limits: neither source says who runs a project, so GitHub activity stands in for
 
 ## Architecture
 
-No framework, no build step, no backend. It is a static site of plain ES modules, so it deploys anywhere.
+No framework, no chart library, no build step, no backend. The radar chart is hand-built SVG. It is a static site of plain ES modules, so it deploys anywhere.
 
 ```
 index.html          page shell
 styles.css          design tokens (light and dark themes) and layout
 src/engine.js       scoring engine: pure functions, no DOM or network
 src/api.js          CoinGecko and GitHub clients with sessionStorage caching and rate-limit handling
-src/app.js          UI: coin search, rendering, URL state
+src/app.js          UI: coin search, weight sliders, SVG radar chart, comparison, URL state
 tests/              unit tests for the engine, plus a regression test on real captured API data
 ```
 
@@ -59,7 +62,7 @@ tests/              unit tests for the engine, plus a regression test on real ca
 ## Run it locally
 
 ```bash
-npm test     # 14 unit tests, Node 20+
+npm test     # 17 unit tests, Node 20+
 npm start    # serves the site at http://localhost:3000
 ```
 

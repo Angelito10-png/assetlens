@@ -226,8 +226,13 @@ function flags(c) {
   return f;
 }
 
-function score(c, profileKey) {
-  const p = PROFILES[profileKey];
+/**
+ * Score a normalised coin for a profile. Pass `customWeights` ({factorKey: number}, any scale)
+ * to override the profile's weights; the profile's rules (caps, recommendations) still apply.
+ */
+function score(c, profileKey, customWeights) {
+  const base = PROFILES[profileKey];
+  const p = customWeights ? { ...base, weights: { ...base.weights, ...sanitizeWeights(customWeights) }, custom: true } : base;
   const factors = FACTORS.map((F) => {
     const r = F.run(c);
     return { key: F.key, name: F.name, what: F.what, weight: p.weights[F.key], ...r };
@@ -245,6 +250,24 @@ function score(c, profileKey) {
   const missing = factors.filter((f) => f.score === null && f.weight > 0).map((f) => f.name);
   const coverage = factors.filter((f) => f.weight > 0).length ? Math.round((used.length / factors.filter((f) => f.weight > 0).length) * 100) : 0;
   return { total, raw, factors, caps, missing, coverage, flags: flags(c), profile: p, profileKey };
+}
+
+/** Keep only known factor keys with finite, non-negative numbers. */
+function sanitizeWeights(w) {
+  const out = {};
+  for (const F of FACTORS) {
+    const v = Number(w[F.key]);
+    if (Number.isFinite(v) && v >= 0) out[F.key] = v;
+  }
+  return out;
+}
+
+/** Encode / decode weights for the URL as seven comma-separated numbers in factor order. */
+const encodeWeights = (w) => FACTORS.map((F) => Math.round(w[F.key] || 0)).join(",");
+function decodeWeights(str) {
+  const parts = String(str || "").split(",").map(Number);
+  if (parts.length !== FACTORS.length || parts.some((n) => !Number.isFinite(n) || n < 0) || !parts.some((n) => n > 0)) return null;
+  return Object.fromEntries(FACTORS.map((F, i) => [F.key, parts[i]]));
 }
 
 const verdict = (t) => t >= 8 ? ["Strong fit", "strong"] : t >= 6.5 ? ["Good fit", "good"] : t >= 5 ? ["Mixed", "mixed"] : t >= 3.5 ? ["Weak fit", "weak"] : ["Poor fit", "poor"];
@@ -276,4 +299,4 @@ function recommend(c, r) {
   return out;
 }
 
-export { normalize, score, recommend, verdict, flags, FACTORS, PROFILES, fmtBig, fmtPct, fmtNum, lin, clamp };
+export { normalize, score, sanitizeWeights, encodeWeights, decodeWeights, recommend, verdict, flags, FACTORS, PROFILES, fmtBig, fmtPct, fmtNum, lin, clamp };

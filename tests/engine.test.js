@@ -137,3 +137,31 @@ test("regression: real CoinGecko + GitHub data captured on 2026-11-25", async ()
   // Ethereum has no supply cap and gets flagged for it.
   assert.ok(E.flags(E.normalize(F.ethereum.info)).some(([, t]) => /No supply cap/.test(t)));
 });
+
+test("custom weights override the profile and change the score", () => {
+  const c = E.normalize(bigCoin, null, gh);
+  const base = E.score(c, "longterm");
+  const momentumOnly = E.score(c, "longterm", { size: 0, tokenomics: 0, momentum: 100, stability: 0, development: 0, maturity: 0, community: 0 });
+  assert.equal(momentumOnly.profile.custom, true);
+  assert.ok(momentumOnly.total < base.total); // momentum was weak in the fixture
+  const m = momentumOnly.factors.find((f) => f.key === "momentum");
+  assert.ok(Math.abs(m.effWeight - 100) < 1e-9);
+  // the original profile object is untouched
+  assert.equal(E.PROFILES.longterm.weights.momentum, 5);
+});
+
+test("weights scale does not matter, only proportions", () => {
+  const c = E.normalize(bigCoin, null, gh);
+  const w = E.PROFILES.defensive.weights;
+  const doubled = Object.fromEntries(Object.entries(w).map(([k, v]) => [k, v * 2]));
+  assert.equal(E.score(c, "defensive", doubled).total, E.score(c, "defensive").total);
+});
+
+test("weights round-trip through the URL format and reject bad input", () => {
+  const w = E.PROFILES.aggressive.weights;
+  assert.deepEqual(E.decodeWeights(E.encodeWeights(w)), w);
+  assert.equal(E.decodeWeights("1,2,3"), null);
+  assert.equal(E.decodeWeights("0,0,0,0,0,0,0"), null);
+  assert.equal(E.decodeWeights("10,-1,10,10,10,10,10"), null);
+  assert.deepEqual(E.sanitizeWeights({ size: "5", bogus: 3, momentum: -2 }), { size: 5 });
+});
