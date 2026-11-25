@@ -2,6 +2,7 @@
  * Coin Scorecard scoring engine.
  * Pure functions only: no DOM, no network. Everything here is unit-tested in tests/engine.test.js.
  */
+import { t } from "./i18n.js?v=__V__";
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 // linear map of x from [x0,x1] onto [0,10]; works with x0 > x1 for "lower is better"
@@ -79,150 +80,107 @@ const fmtNum = (v) => (v === null ? "n/a" : v >= 1e9 ? (v / 1e9).toFixed(2) + "B
 const avg = (parts) => { const p = parts.filter((x) => x[0] !== null); if (!p.length) return null; const w = p.reduce((s, x) => s + x[1], 0); return p.reduce((s, x) => s + x[0] * x[1], 0) / w; };
 const log10 = (x) => Math.log10(Math.max(x, 1e-9));
 
-/* Each factor returns { score 0-10 | null, notes: [string], inputs: [[label, value]] } */
+/* Each factor returns { score 0-10 | null, notes: [string], inputs: [[label, value]] }.
+   Names, descriptions and notes come from i18n.js, so they follow the current language. */
+const na = "n/a";
+const factor = (key, run) => ({ key, get name() { return t("f_" + key); }, get what() { return t("f_" + key + "_what"); }, run });
 const FACTORS = [
-  {
-    key: "size", name: "Market size & liquidity",
-    what: "How big and how easily traded the coin is. Large, liquid coins are harder to manipulate and easier to exit.",
-    run(c) {
-      const rankS = c.rank ? clamp(10 - 2 * log10(c.rank), 0, 10) : null;
-      const turnover = c.vol24 !== null && c.mcap ? (c.vol24 / c.mcap) * 100 : null;
-      let liqS = turnover === null ? null : turnover <= 0.3 ? 1 : turnover < 8 ? lin(log10(turnover), log10(0.3), log10(8)) : turnover <= 40 ? 10 : 6;
-      const notes = [];
-      if (c.rank) notes.push(`Ranked #${c.rank} by market cap (${fmtBig(c.mcap)}).`);
-      if (turnover !== null) notes.push(turnover > 40 ? `Daily volume is ${turnover.toFixed(1)}% of market cap, unusually high, which can signal wash trading or a speculative spike.` : turnover < 1 ? `Daily volume is only ${turnover.toFixed(2)}% of market cap, so large orders may move the price.` : `Daily volume is ${turnover.toFixed(1)}% of market cap, a healthy level of trading.`);
-      return { score: avg([[rankS, 0.6], [liqS, 0.4]]), notes, inputs: [["Rank", c.rank ? "#" + c.rank : "n/a"], ["Market cap", fmtBig(c.mcap)], ["24h volume", fmtBig(c.vol24)], ["Volume / cap", turnover === null ? "n/a" : turnover.toFixed(2) + "%"]] };
-    },
-  },
-  {
-    key: "tokenomics", name: "Tokenomics & dilution",
-    what: "How much of the supply is already circulating and whether future unlocks or uncapped issuance can dilute holders.",
-    run(c) {
-      const cap = c.max || c.total;
-      const float = c.circ && cap ? clamp(c.circ / cap, 0, 1) : null;
-      const floatS = float === null ? null : lin(float, 0.15, 0.95);
-      const fdvRatio = c.fdv && c.mcap ? c.fdv / c.mcap : float ? 1 / float : null;
-      const dilS = fdvRatio === null ? null : lin(fdvRatio, 4, 1.05);
-      const capS = c.max ? 10 : c.total ? 5 : null;
-      const notes = [];
-      if (float !== null) notes.push(`${(float * 100).toFixed(0)}% of the ${c.max ? "maximum" : "total"} supply is circulating.`);
-      if (fdvRatio !== null) notes.push(fdvRatio > 2 ? `Fully diluted value is ${fdvRatio.toFixed(1)}x the market cap, so a large share of tokens is still to be released.` : `Fully diluted value is ${fdvRatio.toFixed(2)}x the market cap, so little dilution is left.`);
-      notes.push(c.max ? `Supply is hard-capped at ${fmtNum(c.max)} tokens.` : "No maximum supply is set, so issuance can continue. Check the emission schedule.");
-      return { score: avg([[floatS, 0.4], [dilS, 0.4], [capS, 0.2]]), notes, inputs: [["Circulating", fmtNum(c.circ)], ["Total", fmtNum(c.total)], ["Max", c.max ? fmtNum(c.max) : "uncapped"], ["FDV / cap", fdvRatio === null ? "n/a" : fdvRatio.toFixed(2) + "x"]] };
-    },
-  },
-  {
-    key: "momentum", name: "Price momentum",
-    what: "The recent trend over 7 days, 30 days and one year.",
-    run(c) {
-      const s = avg([[c.ch7d === null ? null : lin(c.ch7d, -15, 20), 0.2], [c.ch30d === null ? null : lin(c.ch30d, -30, 40), 0.4], [c.ch1y === null ? null : lin(c.ch1y, -60, 150), 0.4]]);
-      const notes = [];
-      if (c.ch30d !== null) notes.push(`${fmtPct(c.ch30d)} over 30 days${c.ch1y !== null ? ` and ${fmtPct(c.ch1y)} over one year` : ""}.`);
-      if (c.ch7d !== null) notes.push(`${fmtPct(c.ch7d)} over the last 7 days.`);
-      if (s === null) notes.push("No price history is available.");
-      return { score: s, notes, inputs: [["7 days", fmtPct(c.ch7d)], ["30 days", fmtPct(c.ch30d)], ["1 year", fmtPct(c.ch1y)]] };
-    },
-  },
-  {
-    key: "stability", name: "Stability & drawdown",
-    what: "How far the price sits below its all-time high and how wildly it swings. Higher means calmer.",
-    run(c) {
-      const ddS = c.athChange === null ? null : lin(c.athChange, -95, -10);
-      const range = c.high24 && c.low24 && c.price ? ((c.high24 - c.low24) / c.price) * 100 : null;
-      const rangeS = range === null ? null : lin(range, 15, 1.5);
-      const swingS = c.ch7d === null ? null : lin(Math.abs(c.ch7d), 30, 3);
-      const notes = [];
-      if (c.athChange !== null) notes.push(`Trading ${Math.abs(c.athChange).toFixed(0)}% below its all-time high of ${fmtBig(c.ath)}.`);
-      if (range !== null) notes.push(`Today's high-low range is ${range.toFixed(1)}% of the price.`);
-      return { score: avg([[ddS, 0.5], [rangeS, 0.25], [swingS, 0.25]]), notes, inputs: [["From ATH", fmtPct(c.athChange, 0)], ["24h range", range === null ? "n/a" : range.toFixed(1) + "%"], ["7d swing", fmtPct(c.ch7d)]] };
-    },
-  },
-  {
-    key: "development", name: "Team & development activity",
-    what: "Live code activity on GitHub, used as a proxy for an active, credible team. It does not verify who the team is.",
-    run(c) {
-      const notes = [];
-      const has = c.commits4w !== null || c.stars !== null || c.contributors !== null;
-      if (!c.repos.length && !c.devProvided) {
-        notes.push("The project lists no public code repository, so there is no visible evidence of an active development team.");
-        return { score: 0, notes, inputs: [["Repos listed", "0"]] };
-      }
-      if (!c.devProvided) {
-        notes.push(`The project lists ${c.repos.length} public repositor${c.repos.length === 1 ? "y" : "ies"}, but GitHub activity could not be loaded, so this factor is skipped and its weight goes to the others.`);
-        return { score: null, notes, inputs: [["Repos listed", String(c.repos.length)]], missing: true };
-      }
-      if (!has || (c.commits4w === 0 && !c.stars && !c.contributors)) {
-        notes.push(c.repos.length ? "A GitHub repository is listed but CoinGecko has no activity figures for it." : "No public code repository or developer activity is reported.");
-        return { score: c.repos.length ? 3 : null, notes, inputs: [["Repos listed", String(c.repos.length)]], missing: !c.repos.length };
-      }
-      const commitS = c.commits4w === null ? null : lin(log10(c.commits4w + 1), 0, log10(201));
-      const contribS = c.contributors === null ? null : lin(log10(c.contributors + 1), 0, log10(301));
-      const starS = c.stars === null ? null : lin(log10(c.stars + 1), 1, log10(30001));
-      const pushS = c.daysSincePush === null ? null : lin(c.daysSincePush, 180, 7);
-      const where = c.ghRepo ? `the main repository (${c.ghRepo})` : "the project's repositories";
-      notes.push(`${fmtNum(c.commits4w)} commits in the last 4 weeks${c.commits52w !== null ? ` and ${fmtNum(c.commits52w)} in the last year` : ""} on ${where}.`);
-      if (c.contributors !== null) notes.push(`${c.contributors >= 500 ? "500+" : fmtNum(c.contributors)} people have contributed code, and it has ${fmtNum(c.stars)} GitHub stars.`);
-      if (c.daysSincePush !== null) notes.push(c.daysSincePush <= 14 ? "Code was pushed in the last two weeks." : `Last code push was ${Math.round(c.daysSincePush)} days ago.`);
-      return { score: avg([[commitS, 0.4], [contribS, 0.3], [starS, 0.15], [pushS, 0.15]]), notes, inputs: [["Commits (4 wk)", fmtNum(c.commits4w)], ["Contributors", c.contributors === null ? "n/a" : c.contributors >= 500 ? "500+" : fmtNum(c.contributors)], ["Stars", fmtNum(c.stars)], ["Source", c.devSource === "github" ? "GitHub" : "CoinGecko"]] };
-    },
-  },
-  {
-    key: "maturity", name: "Track record",
-    what: "How long the coin has existed and survived market cycles.",
-    run(c) {
-      const ref = c.genesis || c.earliest;
-      if (!ref) return { score: null, notes: ["No launch date is available."], inputs: [], missing: true };
-      const yrs = (Date.now() - ref.getTime()) / (365.25 * 864e5);
-      const notes = [`${c.genesis ? "Launched" : "First traded"} ${ref.getFullYear()}, about ${yrs.toFixed(1)} years ago${c.genesis ? "" : " (earliest price record, launch date not listed)"}.`];
-      if (yrs >= 4) notes.push("It has lived through at least one full market cycle.");
-      else notes.push("It has not yet been tested by a full bear-and-bull cycle.");
-      return { score: lin(yrs, 0.5, 8), notes, inputs: [["Age", yrs.toFixed(1) + " yrs"]] };
-    },
-  },
-  {
-    key: "community", name: "Community & sentiment",
-    what: "How many people follow the coin and how CoinGecko users vote on it.",
-    run(c) {
-      const sentS = c.sentimentUp === null ? null : lin(c.sentimentUp, 40, 90);
-      const watchS = c.watchlist === null ? null : lin(log10(c.watchlist + 1), 3, log10(2e6));
-      if (sentS === null && watchS === null) return { score: null, notes: ["No community data is available."], inputs: [], missing: true };
-      const notes = [];
-      if (c.watchlist !== null) notes.push(`${fmtNum(c.watchlist)} CoinGecko users track it in a watchlist or portfolio.`);
-      if (c.sentimentUp !== null) notes.push(`${c.sentimentUp.toFixed(0)}% of today's sentiment votes are positive.`);
-      return { score: avg([[watchS, 0.6], [sentS, 0.4]]), notes, inputs: [["Watchlists", fmtNum(c.watchlist)], ["Positive votes", c.sentimentUp === null ? "n/a" : c.sentimentUp.toFixed(0) + "%"]] };
-    },
-  },
+  factor("size", (c) => {
+    const rankS = c.rank ? clamp(10 - 2 * log10(c.rank), 0, 10) : null;
+    const turnover = c.vol24 !== null && c.mcap ? (c.vol24 / c.mcap) * 100 : null;
+    const liqS = turnover === null ? null : turnover <= 0.3 ? 1 : turnover < 8 ? lin(log10(turnover), log10(0.3), log10(8)) : turnover <= 40 ? 10 : 6;
+    const notes = [];
+    if (c.rank) notes.push(t("n_rank", c.rank, fmtBig(c.mcap)));
+    if (turnover !== null) notes.push(turnover > 40 ? t("n_volHigh", turnover.toFixed(1)) : turnover < 1 ? t("n_volLow", turnover.toFixed(2)) : t("n_volOk", turnover.toFixed(1)));
+    return { score: avg([[rankS, 0.6], [liqS, 0.4]]), notes, inputs: [[t("i_rank"), c.rank ? "#" + c.rank : na], [t("i_mcap"), fmtBig(c.mcap)], [t("i_vol"), fmtBig(c.vol24)], [t("i_volcap"), turnover === null ? na : turnover.toFixed(2) + "%"]] };
+  }),
+  factor("tokenomics", (c) => {
+    const cap = c.max || c.total;
+    const float = c.circ && cap ? clamp(c.circ / cap, 0, 1) : null;
+    const floatS = float === null ? null : lin(float, 0.15, 0.95);
+    const fdvRatio = c.fdv && c.mcap ? c.fdv / c.mcap : float ? 1 / float : null;
+    const dilS = fdvRatio === null ? null : lin(fdvRatio, 4, 1.05);
+    const capS = c.max ? 10 : c.total ? 5 : null;
+    const notes = [];
+    if (float !== null) notes.push(t("n_float", (float * 100).toFixed(0), !!c.max));
+    if (fdvRatio !== null) notes.push(fdvRatio > 2 ? t("n_fdvHigh", fdvRatio.toFixed(1)) : t("n_fdvLow", fdvRatio.toFixed(2)));
+    notes.push(c.max ? t("n_capped", fmtNum(c.max)) : t("n_uncapped"));
+    return { score: avg([[floatS, 0.4], [dilS, 0.4], [capS, 0.2]]), notes, inputs: [[t("i_circ"), fmtNum(c.circ)], [t("i_total"), fmtNum(c.total)], [t("i_max"), c.max ? fmtNum(c.max) : t("i_uncapped")], [t("i_fdvcap"), fdvRatio === null ? na : fdvRatio.toFixed(2) + "x"]] };
+  }),
+  factor("momentum", (c) => {
+    const s = avg([[c.ch7d === null ? null : lin(c.ch7d, -15, 20), 0.2], [c.ch30d === null ? null : lin(c.ch30d, -30, 40), 0.4], [c.ch1y === null ? null : lin(c.ch1y, -60, 150), 0.4]]);
+    const notes = [];
+    if (c.ch30d !== null) notes.push(t("n_mom30", fmtPct(c.ch30d), c.ch1y !== null ? fmtPct(c.ch1y) : null));
+    if (c.ch7d !== null) notes.push(t("n_mom7", fmtPct(c.ch7d)));
+    if (s === null) notes.push(t("n_noHistory"));
+    return { score: s, notes, inputs: [[t("i_7d"), fmtPct(c.ch7d)], [t("i_30d"), fmtPct(c.ch30d)], [t("i_1y"), fmtPct(c.ch1y)]] };
+  }),
+  factor("stability", (c) => {
+    const ddS = c.athChange === null ? null : lin(c.athChange, -95, -10);
+    const range = c.high24 && c.low24 && c.price ? ((c.high24 - c.low24) / c.price) * 100 : null;
+    const rangeS = range === null ? null : lin(range, 15, 1.5);
+    const swingS = c.ch7d === null ? null : lin(Math.abs(c.ch7d), 30, 3);
+    const notes = [];
+    if (c.athChange !== null) notes.push(t("n_ath", Math.abs(c.athChange).toFixed(0), fmtBig(c.ath)));
+    if (range !== null) notes.push(t("n_range", range.toFixed(1)));
+    return { score: avg([[ddS, 0.5], [rangeS, 0.25], [swingS, 0.25]]), notes, inputs: [[t("i_fromAth"), fmtPct(c.athChange, 0)], [t("i_range"), range === null ? na : range.toFixed(1) + "%"], [t("i_swing"), fmtPct(c.ch7d)]] };
+  }),
+  factor("development", (c) => {
+    const has = c.commits4w !== null || c.stars !== null || c.contributors !== null;
+    if (!c.repos.length && !c.devProvided) return { score: 0, notes: [t("n_noRepo")], inputs: [[t("i_repos"), "0"]] };
+    if (!c.devProvided) return { score: null, notes: [t("n_ghFailed", c.repos.length)], inputs: [[t("i_repos"), String(c.repos.length)]], missing: true };
+    if (!has || (c.commits4w === 0 && !c.stars && !c.contributors)) {
+      return { score: c.repos.length ? 3 : null, notes: [c.repos.length ? t("n_repoNoFigures") : t("n_noDev")], inputs: [[t("i_repos"), String(c.repos.length)]], missing: !c.repos.length };
+    }
+    const commitS = c.commits4w === null ? null : lin(log10(c.commits4w + 1), 0, log10(201));
+    const contribS = c.contributors === null ? null : lin(log10(c.contributors + 1), 0, log10(301));
+    const starS = c.stars === null ? null : lin(log10(c.stars + 1), 1, log10(30001));
+    const pushS = c.daysSincePush === null ? null : lin(c.daysSincePush, 180, 7);
+    const contrib = c.contributors === null ? na : c.contributors >= 500 ? "500+" : fmtNum(c.contributors);
+    const notes = [t("n_commits", fmtNum(c.commits4w), c.commits52w !== null ? fmtNum(c.commits52w) : null, c.ghRepo ? t("n_mainRepo", c.ghRepo) : t("n_repos"))];
+    if (c.contributors !== null) notes.push(t("n_contrib", contrib, fmtNum(c.stars)));
+    if (c.daysSincePush !== null) notes.push(c.daysSincePush <= 14 ? t("n_pushRecent") : t("n_pushOld", Math.round(c.daysSincePush)));
+    return { score: avg([[commitS, 0.4], [contribS, 0.3], [starS, 0.15], [pushS, 0.15]]), notes, inputs: [[t("i_commits"), fmtNum(c.commits4w)], [t("i_contrib"), contrib], [t("i_stars"), fmtNum(c.stars)], [t("i_source"), c.devSource === "github" ? "GitHub" : "CoinGecko"]] };
+  }),
+  factor("maturity", (c) => {
+    const ref = c.genesis || c.earliest;
+    if (!ref) return { score: null, notes: [t("n_noLaunch")], inputs: [], missing: true };
+    const yrs = (Date.now() - ref.getTime()) / (365.25 * 864e5);
+    const notes = [t("n_launched", ref.getFullYear(), yrs.toFixed(1), !!c.genesis), yrs >= 4 ? t("n_cycle") : t("n_noCycle")];
+    return { score: lin(yrs, 0.5, 8), notes, inputs: [[t("i_age"), t("i_yrs", yrs.toFixed(1))]] };
+  }),
+  factor("community", (c) => {
+    const sentS = c.sentimentUp === null ? null : lin(c.sentimentUp, 40, 90);
+    const watchS = c.watchlist === null ? null : lin(log10(c.watchlist + 1), 3, log10(2e6));
+    if (sentS === null && watchS === null) return { score: null, notes: [t("n_noCommunity")], inputs: [], missing: true };
+    const notes = [];
+    if (c.watchlist !== null) notes.push(t("n_watch", fmtNum(c.watchlist)));
+    if (c.sentimentUp !== null) notes.push(t("n_sentiment", c.sentimentUp.toFixed(0)));
+    return { score: avg([[watchS, 0.6], [sentS, 0.4]]), notes, inputs: [[t("i_watch"), fmtNum(c.watchlist)], [t("i_votes"), c.sentimentUp === null ? na : c.sentimentUp.toFixed(0) + "%"]] };
+  }),
 ];
 
-/* Weights per profile. These are a first guess, marked as such in the page. */
+/* Weights per profile. Labels and blurbs follow the current language. */
+const profile = (key, weights) => ({ key, get label() { return t("profile_" + key); }, get blurb() { return t("blurb_" + key); }, weights });
 const PROFILES = {
-  aggressive: {
-    label: "Aggressive", blurb: "Seeks high upside and accepts big swings and drawdowns.",
-    weights: { size: 10, tokenomics: 15, momentum: 30, stability: 5, development: 20, maturity: 5, community: 15 },
-  },
-  defensive: {
-    label: "Defensive", blurb: "Protects capital first; prefers large, liquid, proven coins.",
-    weights: { size: 25, tokenomics: 15, momentum: 5, stability: 25, development: 10, maturity: 20, community: 0 },
-  },
-  longterm: {
-    label: "Long-term", blurb: "Holds for years; cares about supply design and a team that keeps building.",
-    weights: { size: 15, tokenomics: 25, momentum: 5, stability: 10, development: 25, maturity: 15, community: 5 },
-  },
+  aggressive: profile("aggressive", { size: 10, tokenomics: 15, momentum: 30, stability: 5, development: 20, maturity: 5, community: 15 }),
+  defensive: profile("defensive", { size: 25, tokenomics: 15, momentum: 5, stability: 25, development: 10, maturity: 20, community: 0 }),
+  longterm: profile("longterm", { size: 15, tokenomics: 25, momentum: 5, stability: 10, development: 25, maturity: 15, community: 5 }),
 };
 
 function flags(c) {
   const f = [];
   const turnover = c.vol24 !== null && c.mcap ? (c.vol24 / c.mcap) * 100 : null;
-  if (c.rank && c.rank > 300) f.push(["high", `Small cap (rank #${c.rank}): thin markets and higher failure risk.`]);
-  if (turnover !== null && turnover < 0.5) f.push(["high", "Very low trading volume: hard to exit a position quickly."]);
-  if (turnover !== null && turnover > 60) f.push(["mid", "Volume far above market cap: possible wash trading or hype spike."]);
+  if (c.rank && c.rank > 300) f.push(["high", t("fl_smallCap", c.rank)]);
+  if (turnover !== null && turnover < 0.5) f.push(["high", t("fl_lowVol")]);
+  if (turnover !== null && turnover > 60) f.push(["mid", t("fl_highVol")]);
   const cap = c.max || c.total;
-  if (c.circ && cap && c.circ / cap < 0.4) f.push(["high", `Only ${((c.circ / cap) * 100).toFixed(0)}% of supply circulating: future unlocks may pressure the price.`]);
-  if (!c.max) f.push(["mid", "No supply cap: holders depend on the issuance schedule."]);
-  if (c.athChange !== null && c.athChange < -85) f.push(["high", `Down ${Math.abs(c.athChange).toFixed(0)}% from its peak: a recovery is not guaranteed.`]);
-  if (c.devProvided ? c.commits4w === 0 : !c.repos.length) f.push(["mid", c.devProvided ? "No recent public development activity." : "No public code repository is listed."]);
-  if ((c.categories || []).some((x) => /meme/i.test(x))) f.push(["mid", "Meme coin: value relies mostly on attention, not cash flow or utility."]);
-  if ((c.categories || []).some((x) => /stablecoin/i.test(x))) f.push(["info", "Stablecoin: designed to hold its peg, not to grow in value. The score measures its quality, not its upside."]);
+  if (c.circ && cap && c.circ / cap < 0.4) f.push(["high", t("fl_lowFloat", ((c.circ / cap) * 100).toFixed(0))]);
+  if (!c.max) f.push(["mid", t("fl_noCap")]);
+  if (c.athChange !== null && c.athChange < -85) f.push(["high", t("fl_drawdown", Math.abs(c.athChange).toFixed(0))]);
+  if (c.devProvided ? c.commits4w === 0 : !c.repos.length) f.push(["mid", c.devProvided ? t("fl_noActivity") : t("fl_noRepo")]);
+  if ((c.categories || []).some((x) => /meme/i.test(x))) f.push(["mid", t("fl_meme")]);
+  if ((c.categories || []).some((x) => /stablecoin/i.test(x))) f.push(["info", t("fl_stable")]);
   return f;
 }
 
@@ -232,7 +190,7 @@ function flags(c) {
  */
 function score(c, profileKey, customWeights) {
   const base = PROFILES[profileKey];
-  const p = customWeights ? { ...base, weights: { ...base.weights, ...sanitizeWeights(customWeights) }, custom: true } : base;
+  const p = customWeights ? { key: base.key, label: base.label, blurb: base.blurb, weights: { ...base.weights, ...sanitizeWeights(customWeights) }, custom: true } : base;
   const factors = FACTORS.map((F) => {
     const r = F.run(c);
     return { key: F.key, name: F.name, what: F.what, weight: p.weights[F.key], ...r };
@@ -243,9 +201,9 @@ function score(c, profileKey, customWeights) {
   factors.forEach((f) => { f.effWeight = f.score !== null && f.weight > 0 && wsum ? (f.weight / wsum) * 100 : 0; f.contrib = f.score !== null && wsum ? (f.score * f.weight) / wsum : 0; });
   let total = 1 + raw * 0.9; // map 0-10 onto 1-10
   const caps = [];
-  if (profileKey === "defensive" && c.rank && c.rank > 100) { if (total > 5) caps.push(`Capped at 5.0 because a defensive portfolio should avoid coins outside the top 100 (this one is #${c.rank}).`); total = Math.min(total, 5); }
+  if (profileKey === "defensive" && c.rank && c.rank > 100) { if (total > 5) caps.push(t("cap_defensive", c.rank)); total = Math.min(total, 5); }
   const noCode = (!c.repos.length && !c.devProvided) || (c.devProvided && c.commits4w === 0 && !c.stars);
-  if (profileKey === "longterm" && noCode) { if (total > 6) caps.push("Capped at 6.0 because no development activity is visible, which undermines a multi-year hold."); total = Math.min(total, 6); }
+  if (profileKey === "longterm" && noCode) { if (total > 6) caps.push(t("cap_longterm")); total = Math.min(total, 6); }
   total = Math.round(total * 10) / 10;
   const missing = factors.filter((f) => f.score === null && f.weight > 0).map((f) => f.name);
   const coverage = factors.filter((f) => f.weight > 0).length ? Math.round((used.length / factors.filter((f) => f.weight > 0).length) * 100) : 0;
@@ -270,32 +228,23 @@ function decodeWeights(str) {
   return Object.fromEntries(FACTORS.map((F, i) => [F.key, parts[i]]));
 }
 
-const verdict = (t) => t >= 8 ? ["Strong fit", "strong"] : t >= 6.5 ? ["Good fit", "good"] : t >= 5 ? ["Mixed", "mixed"] : t >= 3.5 ? ["Weak fit", "weak"] : ["Poor fit", "poor"];
+/** [label, key] for a total score. The key is stable across languages. */
+const verdict = (total) => {
+  const key = total >= 8 ? "strong" : total >= 6.5 ? "good" : total >= 5 ? "mixed" : total >= 3.5 ? "weak" : "poor";
+  return [t("verdict_" + key), key];
+};
 
 function recommend(c, r) {
-  const k = r.profileKey, t = r.total;
+  const k = r.profileKey, total = r.total;
   const sorted = r.factors.filter((f) => f.score !== null && f.weight > 0).sort((a, b) => b.weight * (10 - b.score) - a.weight * (10 - a.score));
   const weak = sorted.filter((f) => f.score < 5).slice(0, 2);
   const strong = r.factors.filter((f) => f.score !== null && f.weight > 0 && f.score >= 7).sort((a, b) => b.contrib - a.contrib).slice(0, 2);
-  const out = [];
-  const role = {
-    aggressive: t >= 7 ? "Fits as a high-conviction growth position. Size it so a 70% drawdown would not change your plans." : t >= 5 ? "Fits only as a small speculative position. Set an exit rule before buying." : "Does not offer enough upside signal for the risk. Keep it on a watchlist.",
-    defensive: t >= 7.5 ? "Fits as a core holding candidate within your crypto allocation." : t >= 5.5 ? "Acceptable as a minor holding, but keep crypto a small share of the portfolio overall." : "Too risky for a capital-preservation strategy. Avoid or wait for a stronger track record.",
-    longterm: t >= 7.5 ? "Strong candidate for a buy-and-hold position. Consider building it gradually with regular purchases." : t >= 5.5 ? "Possible long-term hold if the weak points below improve. Revisit every quarter." : "The fundamentals do not yet support a multi-year hold.",
-  }[k];
-  out.push(["Role in your portfolio", role]);
-  if (strong.length) out.push(["What supports it", strong.map((f) => `${f.name} (${f.score.toFixed(1)}/10): ${f.notes[0]}`).join(" ")]);
-  const checks = {
-    size: "Check order-book depth on the exchange you would use before placing a large order.",
-    tokenomics: "Read the vesting and unlock schedule; large unlocks in the next 12 months are a key risk.",
-    momentum: k === "aggressive" ? "Momentum is weak. Wait for a confirmed trend change rather than catching a falling price." : "Weak momentum matters less for your profile, but avoid buying all at once.",
-    stability: k === "defensive" ? "Price swings are large for a defensive portfolio. Keep the position small." : "Expect deep drawdowns; decide in advance how much loss you will tolerate.",
-    development: "Look up the core team, audits and the roadmap; public code activity is low.",
-    maturity: "The project is young. Look for audits, a working product and real users.",
-    community: "Community interest is limited, so liquidity and attention could fade.",
-  };
-  weak.forEach((f) => out.push([`Watch: ${f.name.toLowerCase()}`, checks[f.key]]));
-  if (r.missing.length) out.push(["Data gaps", `No data for ${r.missing.join(" and ").toLowerCase()}, so the score uses the remaining factors only. Research these yourself.`]);
+  const [hi, mid] = { aggressive: [7, 5], defensive: [7.5, 5.5], longterm: [7.5, 5.5] }[k];
+  const out = [[t("r_role"), t(`role_${k}_${total >= hi ? "hi" : total >= mid ? "mid" : "lo"}`)]];
+  if (strong.length) out.push([t("r_supports"), strong.map((f) => `${f.name} (${f.score.toFixed(1)}/10): ${f.notes[0]}`).join(" ")]);
+  const check = (key) => key === "momentum" ? t(k === "aggressive" ? "chk_momentum_aggr" : "chk_momentum") : key === "stability" ? t(k === "defensive" ? "chk_stability_def" : "chk_stability") : t("chk_" + key);
+  weak.forEach((f) => out.push([t("r_watch", f.name), check(f.key)]));
+  if (r.missing.length) out.push([t("r_gaps"), t("r_gapsBody", r.missing)]);
   return out;
 }
 

@@ -18,8 +18,10 @@ Score any cryptocurrency from 1 to 10 for **your** investor profile (aggressive,
 6. **Adjust weights** with sliders and watch the score recompute live, or start from any profile and tune it.
 7. A **radar chart** shows the coin's shape across the seven factors at a glance.
 8. **Compare** up to three coins side by side: overlaid radar shapes plus a table of every score, with the best value in each row marked.
+9. **English and Greek.** Every text, including factor explanations, risk flags and recommendations, comes from a translation dictionary (`src/i18n.js`). The language follows your browser and can be switched at any time.
+10. **Light and dark themes**, following your system setting or chosen by hand.
 
-Results are shareable: the URL carries the coin, profile, custom weights and compared coins, for example `?coin=ethereum&profile=defensive&vs=solana,chainlink`.
+Results are shareable: the URL carries the coin, profile, custom weights and compared coins, for example `?coin=ethereum&profile=defensive&vs=solana,chainlink&lang=el`.
 
 ## Scoring model
 
@@ -50,9 +52,10 @@ No framework, no chart library, no build step, no backend. The radar chart is ha
 index.html          page shell
 styles.css          design tokens (light and dark themes) and layout
 src/engine.js       scoring engine: pure functions, no DOM or network
+src/i18n.js         English and Greek dictionaries, t() lookup
 src/api.js          CoinGecko and GitHub clients with sessionStorage caching and rate-limit handling
 src/app.js          UI: coin search, weight sliders, SVG radar chart, comparison, URL state
-tests/              unit tests for the engine, plus a regression test on real captured API data
+tests/              unit tests for the engine, a regression test on real captured API data, and translation checks
 ```
 
 - **Separation of concerns:** the scoring engine is pure and fully unit-tested; the UI only renders what it returns.
@@ -62,7 +65,7 @@ tests/              unit tests for the engine, plus a regression test on real ca
 ## Run it locally
 
 ```bash
-npm test     # 17 unit tests, Node 20+
+npm test     # 19 unit tests, Node 20+
 npm start    # serves the site at http://localhost:3000
 ```
 

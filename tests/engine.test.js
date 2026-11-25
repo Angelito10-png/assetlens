@@ -165,3 +165,29 @@ test("weights round-trip through the URL format and reject bad input", () => {
   assert.equal(E.decodeWeights("10,-1,10,10,10,10,10"), null);
   assert.deepEqual(E.sanitizeWeights({ size: "5", bogus: 3, momentum: -2 }), { size: 5 });
 });
+
+test("i18n: English and Greek dictionaries have the same keys and types", async () => {
+  const { LANGS } = await import("../src/i18n.js");
+  const en = Object.keys(LANGS.en).sort(), el = Object.keys(LANGS.el).sort();
+  assert.deepEqual(el, en);
+  for (const k of en) assert.equal(typeof LANGS.el[k], typeof LANGS.en[k], k);
+});
+
+test("i18n: switching to Greek translates factors, verdicts, flags and notes", async () => {
+  const { setLang } = await import("../src/i18n.js?v=__V__");
+  const fs = await import("node:fs");
+  const F = JSON.parse(fs.readFileSync(new URL("./fixtures/live-2026-11-25.json", import.meta.url)));
+  try {
+    setLang("el");
+    const c = E.normalize(F.ethereum.info, null, F.ethereum.gh);
+    const r = E.score(c, "longterm");
+    const greek = /[Ͱ-Ͽ]/;
+    assert.match(E.verdict(9)[0], greek);
+    assert.equal(E.verdict(9)[1], "strong");
+    assert.match(E.PROFILES.longterm.label, greek);
+    for (const f of r.factors) { assert.match(f.name, greek, f.key); for (const n of f.notes) assert.match(n, greek, f.key); }
+    for (const [, txt] of r.flags) assert.match(txt, greek);
+    for (const [h, txt] of E.recommend(c, r)) { assert.match(h, greek); assert.match(txt, greek); }
+  } finally { setLang("en"); }
+  assert.equal(E.verdict(9)[0], "Strong fit");
+});
