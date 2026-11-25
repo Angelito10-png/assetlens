@@ -23,7 +23,10 @@ jobs:
           node-version: 22
       - run: npm test
       - name: Collect site files
-        run: mkdir _site && cp -r index.html styles.css src _site/
+        run: |
+          mkdir _site && cp -r index.html styles.css src _site/
+          # Cache-bust: stamp the commit into asset URLs so browsers never mix old and new files.
+          sed -i "s/__V__/${GITHUB_SHA::7}/g" _site/index.html _site/src/app.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

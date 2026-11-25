@@ -1,5 +1,5 @@
-import * as E from "./engine.js";
-import { topCoins, coinInfo, searchCoins, githubActivity, ApiError } from "./api.js";
+import * as E from "./engine.js?v=__V__";
+import { topCoins, coinInfo, searchCoins, githubActivity, ApiError } from "./api.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
 const QUICK = [["bitcoin", "Bitcoin"], ["ethereum", "Ethereum"], ["solana", "Solana"], ["chainlink", "Chainlink"], ["dogecoin", "Dogecoin"], ["pepe", "Pepe"]];
