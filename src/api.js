@@ -120,3 +120,15 @@ export async function githubActivity(repoUrls) {
     contributors,
   };
 }
+
+/* ---------------- News (same-origin file built every 3 hours by GitHub Actions) ---------------- */
+
+/** Headlines per coin id, or null when the file is missing (e.g. when running locally). */
+export async function newsFeed() {
+  try {
+    const res = await fetch("news.json", { cache: "no-cache" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json && typeof json.coins === "object" ? json : null;
+  } catch { return null; }
+}

@@ -20,6 +20,7 @@ Score any cryptocurrency from 1 to 10 for **your** investor profile (aggressive,
 8. **Compare** up to three coins side by side: overlaid radar shapes plus a table of every score, with the best value in each row marked.
 9. **English and Greek.** Every text, including factor explanations, risk flags and recommendations, comes from a translation dictionary (`src/i18n.js`). The language follows your browser and can be switched at any time.
 10. **Light and dark themes**, following your system setting or chosen by hand.
+11. **Latest news** for the selected coin: recent headlines from CryptoPanic and major crypto news sites, refreshed every 3 hours.
 
 Results are shareable: the URL carries the coin, profile, custom weights and compared coins, for example `?coin=ethereum&profile=defensive&vs=solana,chainlink&lang=el`.
 
@@ -54,6 +55,7 @@ styles.css          design tokens (light and dark themes) and layout
 src/engine.js       scoring engine: pure functions, no DOM or network
 src/i18n.js         English and Greek dictionaries, t() lookup
 src/api.js          CoinGecko and GitHub clients with sessionStorage caching and rate-limit handling
+scripts/            build step that collects news headlines (runs in GitHub Actions)
 src/app.js          UI: coin search, weight sliders, SVG radar chart, comparison, URL state
 tests/              unit tests for the engine, a regression test on real captured API data, and translation checks
 ```
@@ -65,7 +67,7 @@ tests/              unit tests for the engine, a regression test on real capture
 ## Run it locally
 
 ```bash
-npm test     # 19 unit tests, Node 20+
+npm test     # 22 unit tests, Node 20+
 npm start    # serves the site at http://localhost:3000
 ```
 
@@ -73,7 +75,11 @@ Any static file server works, since the browser calls the public APIs directly.
 
 ## Deployment
 
-Every push to `main` runs the tests and deploys to GitHub Pages (`.github/workflows/pages.yml`).
+Every push to `main`, and a schedule every 3 hours, runs the tests and deploys to GitHub Pages (`.github/workflows/pages.yml`).
+
+### News without exposing an API key
+
+CryptoPanic needs a private API key and does not accept calls from browsers, so the page never calls it. Instead, the deploy job runs `scripts/fetch-news.mjs`, which reads the key from the `CRYPTOPANIC_TOKEN` repository secret, collects headlines and publishes only those as `news.json` next to the site. It also reads the public RSS feeds of several crypto news sites and matches headlines to coins by name or ticker, so news still works when no key is set. If every source fails, the deploy still goes ahead and the page says news is unavailable.
 
 ## License
 

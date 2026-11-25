@@ -1,5 +1,5 @@
 import * as E from "./engine.js?v=__V__";
-import { topCoins, coinInfo, searchCoins, githubActivity, ApiError } from "./api.js?v=__V__";
+import { topCoins, coinInfo, searchCoins, githubActivity, newsFeed, ApiError } from "./api.js?v=__V__";
 import { t, setLang, getLang } from "./i18n.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
@@ -8,6 +8,7 @@ let coins = [];
 let current = null; // normalised coin
 let meta = null; // { loadedAt, ghStatus, logo, cgUrl, ghUrl }
 let customWeights = null; // null = use the profile's weights
+let news; // undefined = loading, null = unavailable, else { updated, sources, coins }
 let compare = []; // up to 2 extra coins: { c, meta }
 const MAX_COMPARE = 2;
 const locale = () => (getLang() === "el" ? "el-GR" : "en-US");
@@ -285,6 +286,7 @@ function render() {
   $("result").replaceChildren(el("div", { style: "display:grid;gap:20px" },
     el("div", { class: "hero" }, card, right),
     el("div", { class: "viz" }, radarPanel(r), comparePanel(r)),
+    newsPanel(),
     el("section", { class: "panel" }, el("div", { class: "section-head" }, el("h2", {}, t("breakdown")), el("span", { class: "muted", style: "font-size:.82rem" }, t("breakdownNote", !!customWeights, r.profile.label))), ledger),
     el("div", { class: "two" },
       el("section", { class: "panel" }, el("h2", { style: "margin-bottom:14px" }, t("recsFor", t("whoProfile", r.profile.label))), el("ul", { class: "recs" }, ...recs.map(([h, txt]) => el("li", {}, el("b", {}, h), el("span", {}, txt))))),
@@ -296,6 +298,30 @@ function render() {
         )),
     ),
   ));
+}
+
+function ago(iso) {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (!isFinite(s) || s < 60) return t("justNow");
+  const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: "auto" });
+  if (s < 3600) return rtf.format(-Math.round(s / 60), "minute");
+  if (s < 86400) return rtf.format(-Math.round(s / 3600), "hour");
+  return rtf.format(-Math.round(s / 86400), "day");
+}
+
+function newsPanel() {
+  const items = news && news.coins ? (news.coins[current.id] || []).filter((x) => safeUrl(x.url)) : [];
+  const note = news && news.updated ? t("newsNote", (news.sources || []).join(", ") || "–", ago(news.updated)) : "";
+  const body = news === undefined ? el("p", { class: "muted", style: "margin:0" }, t("loading"))
+    : !news ? el("p", { class: "muted", style: "margin:0" }, t("newsUnavailable"))
+    : !items.length ? el("p", { class: "muted", style: "margin:0" }, t("noNews"))
+    : el("ul", { class: "news" }, ...items.map((x) => el("li", {},
+        el("a", { href: safeUrl(x.url), target: "_blank", rel: "noopener" }, x.title),
+        el("span", { class: "muted" }, [x.source, x.published ? ago(x.published) : null].filter(Boolean).join(" · ")))));
+  return el("section", { class: "panel", id: "newsPanel" },
+    el("div", { class: "section-head" }, el("h2", {}, t("news")), el("span", { class: "muted", style: "font-size:.82rem" }, note)),
+    body,
+    items.length ? el("p", { class: "muted", style: "margin:10px 0 0;font-size:.78rem" }, t("newsDisclaimer")) : null);
 }
 
 function radarPanel(r) {
@@ -411,6 +437,7 @@ function init() {
 
   renderMethod();
   loadList();
+  newsFeed().then((n) => { news = n; const p = document.getElementById("newsPanel"); if (p && current) p.replaceWith(newsPanel()); });
   analyze(url.coin || "bitcoin").then(async () => {
     for (const id of url.vs) { try { if (current && id !== current.id) compare.push(await loadCoin(id)); } catch { /* skip coins that fail */ } }
     if (compare.length) { render(); writeUrl(); }

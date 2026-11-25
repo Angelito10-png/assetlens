@@ -100,6 +100,12 @@ const en = {
   score: "Score",
 
   // ---- method ----
+  news: "Latest news",
+  newsNote: (sources, ago) => `Headlines from ${sources} · updated ${ago}`,
+  noNews: "No headlines about this coin in the tracked sources over the last few days.",
+  newsUnavailable: "News is not available right now. It is built every 3 hours when the site deploys.",
+  newsDisclaimer: "Headlines are matched to the coin automatically and shown in their original language.",
+  justNow: "just now",
   methodIntro: "Each of seven factors gets a 0 to 10 sub-score from live data using fixed thresholds. Your profile sets how much each factor counts. The weighted average is mapped onto 1 to 10. Factors with no data are skipped and their weight is shared among the rest; the coverage figure shows how much of the weight had data.",
   profileWeights: "Profile weights",
   thresholds: "Thresholds.",
@@ -294,6 +300,12 @@ const el = {
   boldBest: "Με έντονα γράμματα το υψηλότερο σκορ σε κάθε γραμμή.",
   score: "Σκορ",
 
+  news: "Τελευταίες ειδήσεις",
+  newsNote: (sources, ago) => `Τίτλοι από ${sources} · ενημέρωση ${ago}`,
+  noNews: "Δεν υπάρχουν τίτλοι για αυτό το νόμισμα στις πηγές που παρακολουθούνται τις τελευταίες μέρες.",
+  newsUnavailable: "Οι ειδήσεις δεν είναι διαθέσιμες αυτή τη στιγμή. Ανανεώνονται κάθε 3 ώρες με την ενημέρωση της σελίδας.",
+  newsDisclaimer: "Οι τίτλοι αντιστοιχίζονται αυτόματα στο νόμισμα και εμφανίζονται στη γλώσσα της πηγής.",
+  justNow: "μόλις τώρα",
   methodIntro: "Καθένας από τους επτά παράγοντες παίρνει σκορ 0 έως 10 από ζωντανά δεδομένα, με σταθερά όρια. Το προφίλ σου ορίζει πόσο μετρά κάθε παράγοντας. Ο σταθμισμένος μέσος μετατρέπεται σε κλίμακα 1 έως 10. Παράγοντες χωρίς δεδομένα παραλείπονται και το βάρος τους μοιράζεται στους υπόλοιπους· η κάλυψη δεδομένων δείχνει πόσο από το βάρος είχε δεδομένα.",
   profileWeights: "Βάρη ανά προφίλ",
   thresholds: "Όρια.",
