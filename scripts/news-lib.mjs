@@ -37,14 +37,18 @@ export function parseRss(xml, source) {
 
 // Tickers that are also everyday words or too ambiguous to match on their own.
 const AMBIGUOUS = new Set(["ONE", "TON", "SAFE", "GAS", "POL", "S", "IP", "MOVE", "PUMP", "TRUMP", "MORPHO", "FLOW", "SUN", "ENA", "USD", "WLD", "HYPE", "JUP", "KAS", "OM", "AR", "OP", "NEAR", "SEI", "SKY", "HT", "BGB", "LEO", "XDC", "ETC"]);
+// Coin names that are also everyday words ("Just 10 accounts…", "Sky falls"). They are not matched by name.
+const COMMON_NAMES = new Set(["just", "derive", "sky", "sun", "gas", "safe", "flow", "move", "pump", "story", "render", "core", "stacks", "sonic", "near", "dash", "maker", "kite", "gate", "zero", "plume", "beam", "ronin", "aster", "ethena labs"]);
+// Other names people use for a coin in headlines.
+const ALIASES = { ethereum: ["Ether"], "binancecoin": ["BNB"], "avalanche-2": ["Avalanche"], "shiba-inu": ["Shiba Inu"] };
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Build a matcher per coin: its name (any case) or its ticker (upper case, unambiguous ones only). */
 export function coinMatchers(coins) {
   return coins.map((c) => {
     const parts = [];
-    const name = (c.name || "").trim();
-    if (name.length >= 3) parts.push(new RegExp(`(^|[^\\p{L}\\p{N}])${esc(name)}(?![\\p{L}\\p{N}])`, "iu"));
+    const names = [(c.name || "").trim(), ...(ALIASES[c.id] || [])].filter((n) => n.length >= 3 && !COMMON_NAMES.has(n.toLowerCase()));
+    for (const name of names) parts.push(new RegExp(`(^|[^\\p{L}\\p{N}])${esc(name)}(?![\\p{L}\\p{N}])`, "iu"));
     const sym = (c.symbol || "").toUpperCase();
     if (sym.length >= 3 && !AMBIGUOUS.has(sym)) parts.push(new RegExp(`(^|[^A-Za-z0-9$])\\$?${esc(sym)}(?![A-Za-z0-9])`));
     return { id: c.id, test: (text) => parts.some((re) => re.test(text)) };

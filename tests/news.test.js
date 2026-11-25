@@ -8,6 +8,8 @@ const coins = [
   { id: "chainlink", name: "Chainlink", symbol: "link" },
   { id: "toncoin", name: "Toncoin", symbol: "ton" },
   { id: "solana", name: "Solana", symbol: "sol" },
+  { id: "just", name: "JUST", symbol: "jst" },
+  { id: "sky", name: "Sky", symbol: "sky" },
 ];
 
 test("news: parses RSS items with CDATA, entities and dates", () => {
@@ -32,6 +34,8 @@ test("news: matches headlines by name or unambiguous ticker, not by substrings",
   assert.deepEqual(matchHeadline("Click the link to read more", m), []); // lower-case word, not the ticker
   assert.deepEqual(matchHeadline("Firm buys a ton of servers", m), []); // ambiguous ticker
   assert.deepEqual(matchHeadline("Solanart and Ethereumish are other things", m), []);
+  assert.deepEqual(matchHeadline("Just 10 accounts drove the growth; sky is the limit", m), []); // coin names that are common words
+  assert.deepEqual(matchHeadline("Ether rallies after the upgrade", m), ["ethereum"]); // alias
 });
 
 test("news: CryptoPanic posts map to coins by ticker; groups dedupe and sort newest first", () => {
