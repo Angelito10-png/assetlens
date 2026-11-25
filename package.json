@@ -1,0 +1,12 @@
+{
+  "name": "coin-scorecard",
+  "version": "1.0.0",
+  "description": "Score any cryptocurrency from 1 to 10 for your investor profile, using live CoinGecko and GitHub data.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "start": "npx --yes serve@14.2.4 ."
+  },
+  "license": "MIT"
+}

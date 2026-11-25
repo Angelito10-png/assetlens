@@ -1,0 +1,21 @@
+{
+  "_note": "Trimmed real responses from the CoinGecko and GitHub public APIs, captured 2026-11-25. Used as a regression fixture.",
+  "ethereum": {
+    "info": {"id":"ethereum","name":"Ethereum","symbol":"eth","market_cap_rank":2,"genesis_date":"2015-07-30","sentiment_votes_up_percentage":79.55,"watchlist_portfolio_users":2009841,"categories":["Smart Contract Platform","Layer 1 (L1)","Proof of Stake (PoS)"],
+      "links":{"homepage":["https://www.ethereum.org/"],"whitepaper":"https://ethereum.org/whitepaper/","repos_url":{"github":["https://github.com/ethereum/go-ethereum"]}},
+      "market_data":{"current_price":{"usd":1639.53},"ath":{"usd":4946.05},"ath_change_percentage":{"usd":-66.85179},"market_cap":{"usd":200433182837},"fully_diluted_valuation":{"usd":200433182837},"total_volume":{"usd":10700412992},"high_24h":{"usd":1685.46},"low_24h":{"usd":1609.67},"price_change_percentage_24h":-2.64881,"price_change_percentage_7d":-7.5712,"price_change_percentage_30d":-29.42751,"price_change_percentage_1y":-42.95518,"total_supply":122250721.34,"max_supply":null,"circulating_supply":122250721.34}},
+    "gh": {"repo":"ethereum/go-ethereum","stars":51481,"forks":22099,"daysSincePush":0.08,"commits4w":71,"commits52w":995,"contributors":1303}
+  },
+  "chainlink": {
+    "info": {"id":"chainlink","name":"Chainlink","symbol":"link","market_cap_rank":15,"genesis_date":"2017-09-16","sentiment_votes_up_percentage":54.55,"watchlist_portfolio_users":657186,"categories":["Infrastructure","Oracle"],
+      "links":{"homepage":["https://chain.link/"],"whitepaper":"https://research.chain.link/whitepaper-v2.pdf","repos_url":{"github":["https://github.com/smartcontractkit/chainlink"]}},
+      "market_data":{"current_price":{"usd":8.66},"ath":{"usd":52.7},"ath_change_percentage":{"usd":-83.55848},"market_cap":{"usd":6633570162},"fully_diluted_valuation":{"usd":8650414577},"total_volume":{"usd":228526659},"high_24h":{"usd":8.92},"low_24h":{"usd":8.47},"price_change_percentage_24h":-1.63821,"price_change_percentage_7d":-4.71987,"price_change_percentage_30d":-24.96471,"price_change_percentage_1y":-31.63283,"total_supply":1000000000,"max_supply":1000000000,"circulating_supply":766849970.42}},
+    "gh": {"repo":"smartcontractkit/chainlink","stars":8250,"forks":1988,"daysSincePush":0.0015,"commits4w":110,"commits52w":2010,"contributors":336}
+  },
+  "pepe": {
+    "info": {"id":"pepe","name":"Pepe","symbol":"pepe","market_cap_rank":52,"genesis_date":null,"sentiment_votes_up_percentage":85.71,"watchlist_portfolio_users":397441,"categories":["Meme","Ethereum Ecosystem","Frog-Themed"],
+      "links":{"homepage":["https://www.pepe.vip/"],"whitepaper":"","repos_url":{"github":[]}},
+      "market_data":{"current_price":{"usd":0.00000335},"ath":{"usd":0.00002803},"ath_change_percentage":{"usd":-88.05751},"atl_date":{"usd":"2023-04-17T18:14:41.000Z"},"market_cap":{"usd":1403663690},"fully_diluted_valuation":{"usd":1403663690},"total_volume":{"usd":292028361},"high_24h":{"usd":0.00000354},"low_24h":{"usd":0.00000329},"price_change_percentage_24h":-0.41525,"price_change_percentage_7d":-10.85932,"price_change_percentage_30d":-23.30442,"price_change_percentage_1y":-23.62659,"total_supply":420690000000000,"max_supply":420690000000000,"circulating_supply":420690000000000}},
+    "gh": null
+  }
+}

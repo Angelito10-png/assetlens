@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coin Scorecard</title>
+<meta name="description" content="Score any cryptocurrency from 1 to 10 for your investor profile, using live CoinGecko market data and GitHub development activity, with a transparent per-factor rationale.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%230c6b67' stroke-width='5' stroke-dasharray='60 82' transform='rotate(-90 16 16)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Crypto investment viability</div>
+      <h1>Coin Scorecard</h1>
+      <p>Pick a coin and your investor profile. The score is built from live CoinGecko and GitHub data, and every factor shows the numbers behind it.</p>
+    </div>
+    <span class="status" id="status" data-s="idle"><i></i><span id="statusText">Waiting for data</span></span>
+  </header>
+
+  <section class="panel controls" aria-label="Choose a coin and profile">
+    <div>
+      <label class="l" for="coin">Cryptocurrency</label>
+      <input type="text" id="coin" list="coinlist" placeholder="Bitcoin, ETH, solana…" autocomplete="off" value="Bitcoin (BTC)">
+      <datalist id="coinlist"></datalist>
+      <div class="quick" id="quick"></div>
+    </div>
+    <div>
+      <span class="l" id="profLabel">Investor profile</span>
+      <div class="seg" role="radiogroup" aria-labelledby="profLabel">
+        <label><input type="radio" name="profile" id="p-aggressive" value="aggressive"><span>Aggressive</span></label>
+        <label><input type="radio" name="profile" id="p-defensive" value="defensive"><span>Defensive</span></label>
+        <label><input type="radio" name="profile" id="p-longterm" value="longterm" checked><span>Long-term</span></label>
+      </div>
+      <div class="seg-note" id="profNote"></div>
+    </div>
+    <button class="primary" id="go" type="button">Analyze</button>
+  </section>
+
+  <div id="notice" hidden></div>
+  <div id="result"><div class="panel skeleton" id="skeleton">Loading Bitcoin from CoinGecko…</div></div>
+
+  <details class="panel method" id="method">
+    <summary>How the score works</summary>
+    <div class="method-body" id="methodBody"></div>
+  </details>
+
+  <p class="foot">Data from the public CoinGecko and GitHub APIs, loaded live in your browser. This is a portfolio project and an analysis aid, not financial advice. Scores describe how well a coin fits a profile today; they do not predict prices. <a href="https://github.com/REPO_OWNER/coin-scorecard" target="_blank" rel="noopener">Source code</a></p>
+</div>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>

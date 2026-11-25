@@ -1,0 +1,74 @@
+# Coin Scorecard
+
+Score any cryptocurrency from 1 to 10 for **your** investor profile (aggressive, defensive or long-term), using live market data from CoinGecko and development activity from GitHub. Every point of the score is explained: you see each factor's sub-score, its weight for your profile, and the raw numbers behind it.
+
+**Live demo:** https://REPO_OWNER.github.io/coin-scorecard/
+
+![Coin Scorecard showing Chainlink scored for a long-term investor](docs/screenshot.png)
+
+> This is a portfolio project and an analysis aid, not financial advice.
+
+## What it does
+
+1. You pick a coin (any of the thousands listed on CoinGecko) and an investor profile.
+2. The app loads live market data from CoinGecko, then finds the project's main GitHub repository and loads its commit, contributor and star counts.
+3. Seven factors are scored from 0 to 10 with fixed, documented thresholds.
+4. Your profile decides how much each factor counts. The weighted average becomes a 1 to 10 score with a verdict (strong fit, good fit, mixed, weak fit, poor fit).
+5. You get risk flags, recommendations for your profile, and the same coin's score under the other two profiles.
+
+Results are shareable: the URL carries the coin and profile, for example `?coin=ethereum&profile=defensive`.
+
+## Scoring model
+
+| Factor | What it measures | Aggressive | Defensive | Long-term |
+|---|---|---:|---:|---:|
+| Market size & liquidity | Market-cap rank, daily volume relative to market cap | 10% | 25% | 15% |
+| Tokenomics & dilution | Share of supply circulating, fully diluted value vs market cap, supply cap | 15% | 15% | 25% |
+| Price momentum | 7-day, 30-day and 1-year price change | 30% | 5% | 5% |
+| Stability & drawdown | Distance from all-time high, daily range, weekly swing | 5% | 25% | 10% |
+| Team & development | GitHub commits (4 weeks), contributors, stars, last push | 20% | 10% | 25% |
+| Track record | Years since launch | 5% | 20% | 15% |
+| Community & sentiment | CoinGecko watchlists, positive sentiment votes | 15% | 0% | 5% |
+
+Design choices worth calling out:
+
+- **Missing data is skipped, not punished.** If a source fails or doesn't report a value, that factor is dropped and its weight is shared among the rest. The page shows a data-coverage figure so you know how complete the score is.
+- **Absence of code is information.** A coin that lists no public repository scores 0 on development, and its long-term score is capped at 6.
+- **Profile rules.** Defensive scores are capped at 5 outside the top 100 coins.
+- **Final score = 1 + 0.9 × weighted average**, so the scale runs from 1 to 10.
+
+Limits: neither source says who runs a project, so GitHub activity stands in for team credibility. The app cannot detect anonymous teams, past scandals, missing audits or token unlock dates.
+
+## Architecture
+
+No framework, no build step, no backend. It is a static site of plain ES modules, so it deploys anywhere.
+
+```
+index.html          page shell
+styles.css          design tokens (light and dark themes) and layout
+src/engine.js       scoring engine: pure functions, no DOM or network
+src/api.js          CoinGecko and GitHub clients with sessionStorage caching and rate-limit handling
+src/app.js          UI: coin search, rendering, URL state
+tests/              unit tests for the engine, plus a regression test on real captured API data
+```
+
+- **Separation of concerns:** the scoring engine is pure and fully unit-tested; the UI only renders what it returns.
+- **Rate limits:** CoinGecko's free API allows a few calls per minute, and GitHub allows 60 anonymous calls per hour. Responses are cached per session, and each analysis uses one CoinGecko call and three or four GitHub calls. When a limit is hit, the app says so and keeps the rest of the score.
+- **Safety:** all data is rendered with `textContent` (never `innerHTML`), and links from the APIs are only used when they start with `http(s)://`.
+
+## Run it locally
+
+```bash
+npm test     # 14 unit tests, Node 20+
+npm start    # serves the site at http://localhost:3000
+```
+
+Any static file server works, since the browser calls the public APIs directly.
+
+## Deployment
+
+Every push to `main` runs the tests and deploys to GitHub Pages (`.github/workflows/pages.yml`).
+
+## License
+
+MIT
