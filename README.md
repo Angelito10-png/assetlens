@@ -2,7 +2,7 @@
 
 Score any cryptocurrency from 1 to 10 for **your** investor profile (aggressive, defensive or long-term), using live market data from CoinGecko and development activity from GitHub. Every point of the score is explained: you see each factor's sub-score, its weight for your profile, and the raw numbers behind it.
 
-**Live demo:** https://Angelito10-png.github.io/coin-scorecard/
+**Live demo:** https://angelito10-png.github.io/coin-scorecard/
 
 ![Coin Scorecard showing Chainlink scored for a long-term investor](docs/screenshot.png)
 
