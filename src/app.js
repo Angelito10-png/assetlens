@@ -110,7 +110,7 @@ async function analyze(idArg) {
 /* ---------- rendering ---------- */
 const barClass = (s) => (s >= 7 ? "s-hi" : s >= 4.5 ? "s-md" : "s-lo");
 const pctSpan = (v) => el("span", { class: v === null ? "" : v >= 0 ? "pos" : "neg" }, E.fmtPct(v));
-const priceFmt = (v) => (v === null ? "n/a" : v >= 1 ? "$" + v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "$" + v.toPrecision(4));
+const priceFmt = (v) => (v === null ? "n/a" : v >= 1 ? "$" + v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : "$" + v.toPrecision(4));
 
 function dial(score, vkey) {
   const r = 80, C = 2 * Math.PI * r, frac = (score - 1) / 9;
