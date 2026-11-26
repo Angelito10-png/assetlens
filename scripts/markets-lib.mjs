@@ -27,12 +27,19 @@ function factsOf(cf, concept, unit = "USD") {
   return [...byPeriod.values()].sort((a, b) => (a.end < b.end ? -1 : a.end > b.end ? 1 : 0));
 }
 
-/** The concept, among several candidate names, that has the most recent data. */
-function bestConcept(cf, concepts, unit) {
+/**
+ * The concept, among several candidate names, that has the most recent data.
+ * For flows, a concept with fiscal-year values beats one with only quarters,
+ * since companies sometimes tag a few quarters under a different name.
+ */
+function bestConcept(cf, concepts, unit, flow = false) {
+  const lastEnd = (f, annualOnly) => { const l = annualOnly ? f.filter((x) => x.start && days(x.start, x.end) > 350) : f; return l.length ? l[l.length - 1].end : ""; };
   let best = [];
   for (const c of concepts) {
     const f = factsOf(cf, c, unit);
-    if (f.length && (!best.length || f[f.length - 1].end > best[best.length - 1].end)) best = f;
+    if (!f.length) continue;
+    const key = (x) => (flow ? lastEnd(x, true) + "|" : "") + lastEnd(x, false);
+    if (!best.length || key(f) > key(best)) best = f;
   }
   return best;
 }
@@ -86,7 +93,7 @@ const REVENUE = ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenue
  */
 export function fundamentals(cf) {
   if (!cf || !cf.facts) return null;
-  const flow = (concepts, unit) => flowSeries(bestConcept(cf, concepts, unit));
+  const flow = (concepts, unit) => flowSeries(bestConcept(cf, concepts, unit, true));
   const rev = flow(REVENUE), ni = flow(["NetIncomeLoss", "ProfitLoss"]), op = flow(["OperatingIncomeLoss"]);
   const gp = flow(["GrossProfit"]);
   const eps = flow(["EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted", "EarningsPerShareBasic"], "USD/shares");
@@ -98,25 +105,35 @@ export function fundamentals(cf) {
   const assetsF = latestInstant(bestConcept(cf, ["Assets"]));
   const cashF = latestInstant(bestConcept(cf, ["CashAndCashEquivalentsAtCarryingValue", "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"]));
   const bsDate = equityF ? equityF.end : assetsF ? assetsF.end : null;
-  // Debt: total long-term debt (or its current + noncurrent parts) plus short-term borrowings, all at the latest balance-sheet date.
-  const at = (concepts) => { const f = latestInstant(bestConcept(cf, concepts)); return f && bsDate && Math.abs(days(f.end, bsDate)) < 100 ? f.val : null; };
-  const ltd = at(["LongTermDebt", "LongTermDebtAndCapitalLeaseObligations"]);
-  const ltdParts = [at(["LongTermDebtNoncurrent", "LongTermDebtAndCapitalLeaseObligationsNoncurrent"]), at(["LongTermDebtCurrent", "LongTermDebtAndCapitalLeaseObligationsCurrent"])];
-  const shortTerm = (at(["ShortTermBorrowings"]) || 0) + (at(["CommercialPaper"]) || 0);
-  const longTerm = ltd ?? (ltdParts.some((v) => v !== null) ? (ltdParts[0] || 0) + (ltdParts[1] || 0) : null);
-  const debt = longTerm === null && !shortTerm ? null : (longTerm || 0) + shortTerm;
+  // Debt at the latest balance-sheet date (or, failing that, the last annual report).
+  // Companies tag debt in different ways, so try the total first, then long-term + short-term parts.
+  const at = (concepts) => {
+    for (const maxDays of [100, 400]) for (const c of concepts) { const f = latestInstant(factsOf(cf, c)); if (f && bsDate && Math.abs(days(f.end, bsDate)) < maxDays) return f.val; }
+    return null;
+  };
+  const sum = (...v) => (v.some((x) => x !== null) ? v.reduce((a, x) => a + (x || 0), 0) : null);
+  const total = at(["DebtLongtermAndShorttermCombinedAmount"]);
+  const ltFull = at(["LongTermDebt"]);
+  const st = sum(at(["ShortTermBorrowings"]), at(["CommercialPaper"]), at(["OtherShortTermBorrowings"]));
+  const nonCur = sum(at(["LongTermDebtNoncurrent", "LongTermDebtAndCapitalLeaseObligations", "LongTermDebtAndCapitalLeaseObligationsNoncurrent"]), at(["LongTermNotesPayable"]), at(["UnsecuredLongTermDebt"]), at(["SecuredLongTermDebt"]), at(["SubordinatedDebt"]), at(["SecuredDebt"]));
+  const cur = at(["DebtCurrent"]) ?? sum(at(["LongTermDebtCurrent", "LongTermDebtAndCapitalLeaseObligationsCurrent"]), at(["NotesPayableCurrent"]), at(["UnsecuredDebtCurrent"]), st);
+  let debt = total ?? (ltFull !== null ? ltFull + (st || 0) : sum(nonCur, cur));
+  const DEBT_TAGS = ["DebtLongtermAndShorttermCombinedAmount", "LongTermDebt", "LongTermDebtNoncurrent", "LongTermDebtAndCapitalLeaseObligations", "LongTermNotesPayable", "DebtCurrent", "ShortTermBorrowings", "CommercialPaper", "UnsecuredLongTermDebt", "SecuredDebt", "ConvertibleNotesPayable"];
+  const debtFree = debt === null && !DEBT_TAGS.some((c) => factsOf(cf, c).length);
+  if (debtFree) debt = 0; // the company has never reported borrowings
   const g = (s, k = 1) => (s.years.length > k && s.years[k].val > 0 ? (s.years[0].val / s.years[k].val) ** (1 / k) * 100 - 100 : null);
   const fresh = (s) => (s.ttmEnd && bsDate && days(s.ttmEnd, bsDate) > 500 ? null : s.ttm); // ignore concepts the company stopped reporting
   const revenue = fresh(rev), netIncome = fresh(ni);
+  const sharesN = pickShares(shares, sharesDei, bsDate);
   return {
     entity: cf.entityName || null,
     periodEnd: rev.ttmEnd || ni.ttmEnd || bsDate,
     fiscalYearEnd: (rev.years[0] || ni.years[0] || {}).end || null,
     revenue, netIncome, opIncome: fresh(op), grossProfit: fresh(gp),
-    eps: fresh(eps), fcf: fresh(ocf) !== null ? fresh(ocf) - (fresh(capex) || 0) : null,
+    eps: fresh(eps) ?? (netIncome !== null && sharesN ? netIncome / sharesN : null), fcf: fresh(ocf) !== null ? fresh(ocf) - (fresh(capex) || 0) : null,
     revGrowth: r2(g(rev)), revCagr3: r2(g(rev, 3)), epsGrowth: eps.years.length > 1 && eps.years[1].val > 0 ? r2((eps.years[0].val / eps.years[1].val - 1) * 100) : null,
     niGrowth: r2(g(ni)),
-    shares: pickShares(shares, sharesDei, bsDate),
+    shares: sharesN, debtFree,
     equity: equityF ? equityF.val : null, assets: assetsF ? assetsF.val : null, cash: cashF ? cashF.val : null, debt,
     balanceDate: bsDate,
   };
