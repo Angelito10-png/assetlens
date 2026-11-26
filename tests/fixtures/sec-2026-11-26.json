@@ -1,0 +1,362 @@
+{
+ "updated": "2026-11-26T08:00:00Z",
+ "sources": [
+  "SEC EDGAR"
+ ],
+ "stocks": {
+  "AAPL": {
+   "t": "AAPL",
+   "name": "Apple",
+   "sector": "tech",
+   "cik": null,
+   "fin": {
+    "periodEnd": "2026-09-26",
+    "fiscalYearEnd": "2026-09-26",
+    "revenue": 478834000000,
+    "netIncome": 132175000000,
+    "opIncome": 158063000000,
+    "grossProfit": null,
+    "eps": 8.98,
+    "fcf": 136056000000,
+    "revGrowth": 15.06,
+    "revCagr3": 7.7,
+    "epsGrowth": 20.38,
+    "niGrowth": null,
+    "shares": 14720306000,
+    "equity": 112093000000,
+    "assets": 404548000000,
+    "cash": 36305000000,
+    "debt": 80111000000,
+    "balanceDate": "2026-09-26"
+   },
+   "filings": [
+    {
+     "form": "8-K",
+     "kind": "event",
+     "date": "2026-11-09",
+     "items": "8.01,9.01",
+     "url": "https://www.sec.gov/Archives/edgar/data/320193/000114036126042798/ef20085077_8k.htm"
+    },
+    {
+     "form": "10-K",
+     "kind": "annual",
+     "date": "2026-11-03",
+     "items": "",
+     "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000026/aapl-20260926.htm"
+    },
+    {
+     "form": "8-K",
+     "kind": "event",
+     "date": "2026-11-02",
+     "items": "2.02,9.01",
+     "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000024/aapl-20261102.htm"
+    }
+   ],
+   "news": []
+  },
+  "JPM": {
+   "t": "JPM",
+   "name": "JPMorgan Chase",
+   "sector": "financials",
+   "cik": null,
+   "fin": {
+    "periodEnd": "2026-09-30",
+    "fiscalYearEnd": "2025-12-31",
+    "revenue": 203153000000,
+    "netIncome": 65979000000,
+    "opIncome": null,
+    "grossProfit": null,
+    "eps": 23.84,
+    "fcf": -84159000000,
+    "revGrowth": 2.75,
+    "revCagr3": 12.34,
+    "epsGrowth": 1.37,
+    "niGrowth": null,
+    "shares": 2683000000,
+    "equity": 372368000000,
+    "assets": 5091545000000,
+    "cash": 326271000000,
+    "debt": 71339000000,
+    "balanceDate": "2026-09-30"
+   },
+   "filings": [],
+   "news": []
+  },
+  "KO": {
+   "t": "KO",
+   "name": "Coca-Cola",
+   "sector": "staples",
+   "cik": null,
+   "fin": {
+    "periodEnd": "2026-10-02",
+    "fiscalYearEnd": "2025-12-31",
+    "revenue": 51054000000,
+    "netIncome": 14629000000,
+    "opIncome": 15337000000,
+    "grossProfit": null,
+    "eps": 3.39,
+    "fcf": 14282000000,
+    "revGrowth": 1.87,
+    "revCagr3": 3.69,
+    "epsGrowth": 23.58,
+    "niGrowth": null,
+    "shares": 4314000000,
+    "equity": 37372000000,
+    "assets": 107950000000,
+    "cash": 13454000000,
+    "debt": 36623000000,
+    "balanceDate": "2026-10-02"
+   },
+   "filings": [
+    {
+     "form": "8-K",
+     "kind": "event",
+     "date": "2026-11-23",
+     "items": "5.02,9.01",
+     "url": "https://www.sec.gov/Archives/edgar/data/21344/000155278126000567/e26458_ko-8k.htm"
+    },
+    {
+     "form": "10-Q",
+     "kind": "quarterly",
+     "date": "2026-10-28",
+     "items": "",
+     "url": "https://www.sec.gov/Archives/edgar/data/21344/000162828026067844/ko-20261002.htm"
+    },
+    {
+     "form": "8-K",
+     "kind": "event",
+     "date": "2026-10-27",
+     "items": "2.02,9.01",
+     "url": "https://www.sec.gov/Archives/edgar/data/21344/000162828026067403/ko-20261027.htm"
+    }
+   ],
+   "news": []
+  },
+  "MCD": {
+   "t": "MCD",
+   "name": "McDonald's",
+   "sector": "discretionary",
+   "cik": null,
+   "fin": {
+    "periodEnd": "2026-09-30",
+    "fiscalYearEnd": "2025-12-31",
+    "revenue": 27782000000,
+    "netIncome": 8995000000,
+    "opIncome": 13043000000,
+    "grossProfit": null,
+    "eps": 12.64,
+    "fcf": 7491000000,
+    "revGrowth": 3.72,
+    "revCagr3": 5.06,
+    "epsGrowth": 4.92,
+    "niGrowth": null,
+    "shares": 705784744,
+    "equity": -343000000,
+    "assets": 60657000000,
+    "cash": 1193000000,
+    "debt": 39820000000,
+    "balanceDate": "2026-09-30"
+   },
+   "filings": [
+    {
+     "form": "8-K",
+     "kind": "event",
+     "date": "2026-11-17",
+     "items": "8.01,9.01",
+     "url": "https://www.sec.gov/Archives/edgar/data/63908/000110465926129050/tm2630018d1_8k.htm"
+    },
+    {
+     "form": "10-Q",
+     "kind": "quarterly",
+     "date": "2026-11-06",
+     "items": "",
+     "url": "https://www.sec.gov/Archives/edgar/data/63908/000006390826000083/mcd-20260930.htm"
+    }
+   ],
+   "news": []
+  },
+  "MSFT": {
+   "t": "MSFT",
+   "name": "Microsoft",
+   "sector": "tech",
+   "cik": null,
+   "fin": {
+    "periodEnd": "2026-09-30",
+    "fiscalYearEnd": "2026-06-30",
+    "revenue": 346445000000,
+    "netIncome": 142631000000,
+    "opIncome": 163191000000,
+    "grossProfit": null,
+    "eps": 19.15,
+    "fcf": 59957000000,
+    "revGrowth": 17.79,
+    "revCagr3": 16.12,
+    "epsGrowth": 31.6,
+    "niGrowth": null,
+    "shares": 7446000000,
+    "equity": 470509000000,
+    "assets": 779403000000,
+    "cash": 20281000000,
+    "debt": 35481000000,
+    "balanceDate": "2026-09-30"
+   },
+   "filings": [
+    {
+     "form": "8-K",
+     "kind": "event",
+     "date": "2026-11-05",
+     "items": "5.02",
+     "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526448357/d177209d8k.htm"
+    },
+    {
+     "form": "10-Q",
+     "kind": "quarterly",
+     "date": "2026-10-28",
+     "items": "",
+     "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526436133/msft-20260930.htm"
+    }
+   ],
+   "news": []
+  },
+  "NVDA": {
+   "t": "NVDA",
+   "name": "NVIDIA",
+   "sector": "tech",
+   "cik": null,
+   "fin": {
+    "periodEnd": "2026-07-26",
+    "fiscalYearEnd": "2026-01-25",
+    "revenue": 302970000000,
+    "netIncome": 192880000000,
+    "opIncome": 197579000000,
+    "grossProfit": null,
+    "eps": 7.91,
+    "fcf": 127006000000,
+    "revGrowth": 65.47,
+    "revCagr3": 100.05,
+    "epsGrowth": 66.67,
+    "niGrowth": null,
+    "shares": 24285000000,
+    "equity": 228984000000,
+    "assets": 320272000000,
+    "cash": 22443000000,
+    "debt": 33366000000,
+    "balanceDate": "2026-07-26"
+   },
+   "filings": [
+    {
+     "form": "8-K",
+     "kind": "event",
+     "date": "2026-11-23",
+     "items": "5.02,9.01",
+     "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000090/nvda-20261122.htm"
+    },
+    {
+     "form": "8-K",
+     "kind": "event",
+     "date": "2026-11-17",
+     "items": "2.02,9.01",
+     "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000088/nvda-20261117.htm"
+    }
+   ],
+   "news": []
+  },
+  "PFE": {
+   "t": "PFE",
+   "name": "Pfizer",
+   "sector": "health",
+   "cik": null,
+   "fin": {
+    "periodEnd": "2026-09-27",
+    "fiscalYearEnd": "2025-12-31",
+    "revenue": 63624000000,
+    "netIncome": 4033000000,
+    "opIncome": null,
+    "grossProfit": null,
+    "eps": 0.7,
+    "fcf": 11786000000,
+    "revGrowth": -1.65,
+    "revCagr3": -14.8,
+    "epsGrowth": -3.55,
+    "niGrowth": null,
+    "shares": 5751000000,
+    "equity": 89001000000,
+    "assets": 204544000000,
+    "cash": 1824000000,
+    "debt": 62601000000,
+    "balanceDate": "2026-09-27"
+   },
+   "filings": [
+    {
+     "form": "10-Q",
+     "kind": "quarterly",
+     "date": "2026-11-03",
+     "items": "",
+     "url": "https://www.sec.gov/Archives/edgar/data/78003/000007800326000127/pfe-20260927.htm"
+    },
+    {
+     "form": "8-K",
+     "kind": "event",
+     "date": "2026-11-03",
+     "items": "2.02,9.01",
+     "url": "https://www.sec.gov/Archives/edgar/data/78003/000007800326000125/pfe-20261103.htm"
+    }
+   ],
+   "news": []
+  },
+  "TSLA": {
+   "t": "TSLA",
+   "name": "Tesla",
+   "sector": "discretionary",
+   "cik": null,
+   "fin": {
+    "periodEnd": "2026-09-30",
+    "fiscalYearEnd": "2025-12-31",
+    "revenue": 103570000000,
+    "netIncome": 3218000000,
+    "opIncome": 3466000000,
+    "grossProfit": null,
+    "eps": 0.91,
+    "fcf": 3303000000,
+    "revGrowth": -2.93,
+    "revCagr3": 5.19,
+    "epsGrowth": -47.06,
+    "niGrowth": null,
+    "shares": 3541000000,
+    "equity": 89289000000,
+    "assets": 157517000000,
+    "cash": 17853000000,
+    "debt": 7956000000,
+    "balanceDate": "2026-09-30"
+   },
+   "filings": [
+    {
+     "form": "10-Q",
+     "kind": "quarterly",
+     "date": "2026-10-22",
+     "items": "",
+     "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066775/tsla-20260930.htm"
+    },
+    {
+     "form": "8-K",
+     "kind": "event",
+     "date": "2026-10-21",
+     "items": "2.02,9.01",
+     "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/tsla-20261021.htm"
+    },
+    {
+     "form": "DEF 14A",
+     "kind": "proxy",
+     "date": "2026-10-19",
+     "items": "",
+     "url": "https://www.sec.gov/Archives/edgar/data/1318605/000110465926116700/tm267596-1_def14a.htm"
+    }
+   ],
+   "news": []
+  }
+ },
+ "etfs": {},
+ "prices": null,
+ "failed": [],
+ "note": "Fundamentals captured from SEC EDGAR companyfacts on 2026-11-26 for tests."
+}

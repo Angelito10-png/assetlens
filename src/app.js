@@ -1,6 +1,7 @@
 import * as E from "./engine.js?v=__V__";
 import { topCoins, coinInfo, searchCoins, githubActivity, newsFeed, marketsFor, categoryCoins, ApiError } from "./api.js?v=__V__";
 import { t, setLang, getLang } from "./i18n.js?v=__V__";
+import "./i18n-markets.js?v=__V__"; // section names for the top navigation
 import { QUESTIONS, PROFILE_KEYS, quizResult } from "./quiz.js?v=__V__";
 import { CATEGORIES, categoryByKey, rankRows } from "./categories.js?v=__V__";
 import { createWatchlist, fromSnapshot, MAX as WATCH_MAX } from "./watchlist.js?v=__V__";

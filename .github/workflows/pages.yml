@@ -4,7 +4,7 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: "17 */3 * * *" # refresh the news every 3 hours
+    - cron: "17 */3 * * *" # refresh the news every 3 hours (the SEC snapshot is rebuilt on each run too)
 permissions:
   contents: read
   pages: write
@@ -23,14 +23,23 @@ jobs:
       - run: npm test
       - name: Collect site files
         run: |
-          mkdir _site && cp -r index.html styles.css src _site/
+          mkdir _site && cp -r index.html markets.html portfolio.html styles.css src _site/
           # Cache-bust: stamp the commit into asset URLs so browsers never mix old and new files.
-          sed -i "s/__V__/${GITHUB_SHA::7}/g" _site/index.html _site/src/*.js
+          sed -i "s/__V__/${GITHUB_SHA::7}/g" _site/*.html _site/src/*.js
       - name: Fetch news headlines
         # The CryptoPanic key stays in a repository secret; only the resulting headlines are published.
         env:
           CRYPTOPANIC_TOKEN: ${{ secrets.CRYPTOPANIC_TOKEN }}
         run: node scripts/fetch-news.mjs _site/news.json
+      - name: Build the stocks & ETFs snapshot (SEC EDGAR)
+        # SEC asks automated clients for a contact; it is kept in a repository secret.
+        # If SEC can't be reached, keep serving the last published snapshot instead of failing the deploy.
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          ALPHAVANTAGE_KEY: ${{ secrets.ALPHAVANTAGE_KEY }}
+          ALPHAVANTAGE_PUBLISH: ${{ vars.ALPHAVANTAGE_PUBLISH }}
+        run: |
+          node scripts/fetch-markets.mjs _site/markets.json || curl -fsS -o _site/markets.json https://angelito10-png.github.io/coin-scorecard/markets.json || echo "No markets snapshot this run"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -143,3 +143,8 @@ export function marketsFor(ids) {
 export function categoryCoins(categoryId, perPage = 50) {
   return getJson(`${CG}/coins/markets?vs_currency=usd&category=${encodeURIComponent(categoryId)}&order=market_cap_desc&per_page=${perPage}&page=1&sparkline=false&price_change_percentage=7d,30d,1y`, { maxAgeMs: 10 * 60_000 });
 }
+
+/** Daily prices for the last year (the keyless API's limit), for the portfolio analyst's correlations. */
+export function coinChart(id) {
+  return getJson(`${CG}/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=365&interval=daily`, { maxAgeMs: 6 * 3600_000 });
+}
