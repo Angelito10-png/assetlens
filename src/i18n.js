@@ -141,6 +141,20 @@ const en = {
   quiz_habit_1: "Keep it small and sell quickly if things look bad",
   quiz_habit_2: "Buy a little regularly and check a few times a year",
 
+  // ---- watchlist ----
+  watchlist: "Your watchlist",
+  watchAdd: "Watch",
+  watchIn: "Watching",
+  watchAddAria: (name) => `Add ${name} to your watchlist`,
+  watchRemoveAria: (name) => `Remove ${name} from your watchlist`,
+  watchOpenAria: (name) => `Open ${name}`,
+  watchFull: (n) => `Your watchlist is full (${n} coins). Remove one to add another.`,
+  watchPrices: (time) => `Prices updated ${time}`,
+  watchPricesOld: "Prices from when each coin was saved",
+  watchNote: "Saved in this browser only. Prices refresh when you open the page; the other factors use the data from when you last opened each coin.",
+  col_coin: "Coin", col_price: "Price", col_24h: "24h",
+  watchCount: (n) => `${n} coin${n === 1 ? "" : "s"}`,
+
   methodIntro: "Each of seven factors gets a 0 to 10 sub-score from live data using fixed thresholds. Your profile sets how much each factor counts. The weighted average is mapped onto 1 to 10. Factors with no data are skipped and their weight is shared among the rest; the coverage figure shows how much of the weight had data.",
   profileWeights: "Profile weights",
   thresholds: "Thresholds.",
@@ -375,6 +389,20 @@ const el = {
   quiz_habit_0: "Ελέγχω κάθε μέρα και κάνω συναλλαγές με βάση τα νέα και τις τάσεις",
   quiz_habit_1: "Την κρατάω μικρή και πουλάω γρήγορα αν τα πράγματα δείχνουν άσχημα",
   quiz_habit_2: "Αγοράζω λίγο τακτικά και κοιτάζω λίγες φορές τον χρόνο",
+
+  // ---- watchlist ----
+  watchlist: "Η λίστα παρακολούθησής σου",
+  watchAdd: "Παρακολούθηση",
+  watchIn: "Το παρακολουθείς",
+  watchAddAria: (name) => `Πρόσθεσε το ${name} στη λίστα παρακολούθησης`,
+  watchRemoveAria: (name) => `Αφαίρεσε το ${name} από τη λίστα παρακολούθησης`,
+  watchOpenAria: (name) => `Άνοιξε το ${name}`,
+  watchFull: (n) => `Η λίστα είναι γεμάτη (${n} νομίσματα). Αφαίρεσε ένα για να προσθέσεις άλλο.`,
+  watchPrices: (time) => `Τιμές ενημερωμένες ${time}`,
+  watchPricesOld: "Τιμές από τη στιγμή που αποθηκεύτηκε κάθε νόμισμα",
+  watchNote: "Αποθηκεύεται μόνο σε αυτόν τον browser. Οι τιμές ανανεώνονται όταν ανοίγεις τη σελίδα· οι υπόλοιποι παράγοντες χρησιμοποιούν τα δεδομένα από την τελευταία φορά που άνοιξες κάθε νόμισμα.",
+  col_coin: "Νόμισμα", col_price: "Τιμή", col_24h: "24ω",
+  watchCount: (n) => `${n} ${n === 1 ? "νόμισμα" : "νομίσματα"}`,
 
   methodIntro: "Καθένας από τους επτά παράγοντες παίρνει σκορ 0 έως 10 από ζωντανά δεδομένα, με σταθερά όρια. Το προφίλ σου ορίζει πόσο μετρά κάθε παράγοντας. Ο σταθμισμένος μέσος μετατρέπεται σε κλίμακα 1 έως 10. Παράγοντες χωρίς δεδομένα παραλείπονται και το βάρος τους μοιράζεται στους υπόλοιπους· η κάλυψη δεδομένων δείχνει πόσο από το βάρος είχε δεδομένα.",
   profileWeights: "Βάρη ανά προφίλ",

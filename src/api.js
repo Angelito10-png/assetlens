@@ -132,3 +132,9 @@ export async function newsFeed() {
     return json && typeof json.coins === "object" ? json : null;
   } catch { return null; }
 }
+
+/** Current market rows for specific coins, in one request (used by the watchlist). */
+export function marketsFor(ids) {
+  if (!ids.length) return Promise.resolve([]);
+  return getJson(`${CG}/coins/markets?vs_currency=usd&ids=${ids.map(encodeURIComponent).join(",")}&sparkline=false&price_change_percentage=7d,30d,1y`, { maxAgeMs: 2 * 60_000 });
+}

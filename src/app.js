@@ -1,7 +1,8 @@
 import * as E from "./engine.js?v=__V__";
-import { topCoins, coinInfo, searchCoins, githubActivity, newsFeed, ApiError } from "./api.js?v=__V__";
+import { topCoins, coinInfo, searchCoins, githubActivity, newsFeed, marketsFor, ApiError } from "./api.js?v=__V__";
 import { t, setLang, getLang } from "./i18n.js?v=__V__";
 import { QUESTIONS, PROFILE_KEYS, quizResult } from "./quiz.js?v=__V__";
+import { createWatchlist, fromSnapshot, MAX as WATCH_MAX } from "./watchlist.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
 const QUICK = [["bitcoin", "Bitcoin"], ["ethereum", "Ethereum"], ["solana", "Solana"], ["chainlink", "Chainlink"], ["dogecoin", "Dogecoin"], ["pepe", "Pepe"]];
@@ -29,6 +30,7 @@ const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch { /* blocked */ } },
 };
+const watch = createWatchlist({ getItem: (k) => localStorage.getItem(k), setItem: (k, v) => localStorage.setItem(k, v) });
 const profile = () => document.querySelector('input[name="profile"]:checked').value;
 const safeUrl = (u) => (typeof u === "string" && /^https?:\/\//.test(u) ? u : null);
 
@@ -114,6 +116,7 @@ async function analyze(idArg) {
   try {
     const loaded = await loadCoin(id, (msg) => status("loading", msg));
     current = loaded.c; meta = loaded.meta;
+    watch.refresh(current, { logo: meta.logo });
     compare = compare.filter((x) => x.c.id !== current.id);
     $("coin").value = `${current.name} (${current.symbol})`;
     notice(null);
@@ -241,6 +244,7 @@ function dial(score, vkey) {
 }
 
 function render() {
+  renderWatch();
   if (!current) return;
   const c = current, pk = profile(), r = E.score(c, pk, customWeights), [vText, vKey] = E.verdict(r.total);
   const who = customWeights ? t("whoCustom") : t("whoProfile", r.profile.label);
@@ -250,6 +254,7 @@ function render() {
   const badge = meta.logo ? el("img", { class: "logo", src: meta.logo, alt: "", width: 40, height: 40 }) : el("div", { class: "mono-badge" }, c.symbol.slice(0, 4));
   const card = el("div", { class: "panel scorecard" },
     el("div", { class: "coin-id" }, badge, el("div", { style: "text-align:left" }, el("h2", {}, c.name), el("div", { class: "muted mono", style: "font-size:.8rem" }, c.symbol + (c.rank ? " · " + t("rank", c.rank) : "")))),
+    watchButton(c),
     dial(r.total, vKey),
     el("span", { class: "pill v-" + vKey }, t("fitFor", vText, who)),
     r.caps.length ? el("p", { class: "caps" }, ...r.caps) : null,
@@ -385,6 +390,59 @@ function renderMethod() {
   );
 }
 
+/* ---------- watchlist ---------- */
+let watchPricesAt = null;
+function watchButton(c) {
+  const on = watch.has(c.id);
+  const b = el("button", { type: "button", class: "watch-btn" + (on ? " on" : ""), id: "watchBtn", "aria-pressed": String(on), "aria-label": on ? t("watchRemoveAria", c.name) : t("watchAddAria", c.name) },
+    el("span", { "aria-hidden": "true" }, on ? "★" : "☆"), " ", on ? t("watchIn") : t("watchAdd"));
+  b.addEventListener("click", () => {
+    if (watch.has(c.id)) watch.remove(c.id);
+    else if (!watch.save(c, { logo: meta && meta.logo })) { notice("warn", t("watchFull", WATCH_MAX)); return; }
+    b.replaceWith(watchButton(c));
+    renderWatch();
+    document.getElementById("watchBtn")?.focus();
+  });
+  return b;
+}
+function renderWatch() {
+  const panel = $("watchPanel"), list = watch.list();
+  if (!list.length) { panel.hidden = true; panel.replaceChildren(); return; }
+  panel.hidden = false;
+  const pk = profile();
+  const rows = list.map((e) => {
+    const c = fromSnapshot(e.coin), r = E.score(c, pk, customWeights), [vText, vKey] = E.verdict(r.total);
+    return { e, c, r, vText, vKey };
+  }).sort((a, b) => b.r.total - a.r.total);
+  const items = rows.map(({ e, c, r, vText, vKey }) => {
+    const logo = safeUrl(e.logo);
+    const open = el("button", { type: "button", class: "w-coin", "aria-label": t("watchOpenAria", c.name) },
+      logo ? el("img", { src: logo, alt: "", width: 24, height: 24 }) : el("span", { class: "mono-badge sm" }, (c.symbol || "?").slice(0, 3)),
+      el("span", { class: "w-name" }, el("b", {}, c.name), el("small", { class: "muted mono" }, c.symbol)));
+    open.addEventListener("click", () => { analyze(c.id); window.scrollTo({ top: $("result").offsetTop - 12, behavior: "smooth" }); });
+    const rm = el("button", { type: "button", class: "xbtn", "aria-label": t("watchRemoveAria", c.name) }, "×");
+    rm.addEventListener("click", () => { watch.remove(c.id); renderWatch(); const wb = document.getElementById("watchBtn"); if (wb && current) wb.replaceWith(watchButton(current)); });
+    return el("li", { class: "w-row" + (current && current.id === c.id ? " on" : "") },
+      open,
+      el("span", { class: "w-price num" }, priceFmt(c.price ?? null)),
+      el("span", { class: "w-ch num" }, pctSpan(c.ch24 ?? null)),
+      el("span", { class: "w-score" }, el("b", { class: "num" }, r.total.toFixed(1)), el("span", { class: "pill sm v-" + vKey }, vText)),
+      rm);
+  });
+  const at = watchPricesAt ? t("watchPrices", watchPricesAt.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" })) : t("watchPricesOld");
+  panel.replaceChildren(
+    el("div", { class: "section-head" }, el("h2", {}, t("watchlist")), el("span", { class: "muted", style: "font-size:.82rem" }, `${t("watchCount", list.length)} · ${customWeights ? t("scoredCustom") : t("scoredFor", E.PROFILES[pk].label)}`)),
+    el("div", { class: "w-head muted", "aria-hidden": "true" }, el("span", {}, t("col_coin")), el("span", { class: "num" }, t("col_price")), el("span", { class: "num" }, t("col_24h")), el("span", {}, t("col_score")), el("span", {})),
+    el("ul", { class: "w-list" }, ...items),
+    el("p", { class: "muted", style: "margin:10px 0 0;font-size:.78rem" }, `${at}. ${t("watchNote")}`));
+}
+async function refreshWatchPrices() {
+  const ids = watch.ids();
+  if (!ids.length) return;
+  try { watch.applyMarkets(await marketsFor(ids)); watchPricesAt = new Date(); } catch { /* keep saved prices */ }
+  renderWatch();
+}
+
 /* ---------- profile quiz ---------- */
 let quizAnswers = [];
 let quizShowResult = false;
@@ -497,9 +555,11 @@ function init() {
   renderMethod();
   loadList();
   newsFeed().then((n) => { news = n; const p = document.getElementById("newsPanel"); if (p && current) p.replaceWith(newsPanel()); });
+  renderWatch();
   analyze(url.coin || "bitcoin").then(async () => {
     for (const id of url.vs) { try { if (current && id !== current.id) compare.push(await loadCoin(id)); } catch { /* skip coins that fail */ } }
     if (compare.length) { render(); writeUrl(); }
+    refreshWatchPrices();
   });
 }
 
