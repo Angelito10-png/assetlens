@@ -154,6 +154,7 @@ const en = {
   watchNote: "Saved in this browser only. Prices refresh when you open the page; the other factors use the data from when you last opened each coin.",
   col_coin: "Coin", col_price: "Price", col_24h: "24h",
   watchCount: (n) => `${n} coin${n === 1 ? "" : "s"}`,
+  watchEmpty: "No coins yet. Press ☆ Watch next to a coin's name to add it here.",
 
   methodIntro: "Each of seven factors gets a 0 to 10 sub-score from live data using fixed thresholds. Your profile sets how much each factor counts. The weighted average is mapped onto 1 to 10. Factors with no data are skipped and their weight is shared among the rest; the coverage figure shows how much of the weight had data.",
   profileWeights: "Profile weights",
@@ -403,6 +404,7 @@ const el = {
   watchNote: "Αποθηκεύεται μόνο σε αυτόν τον browser. Οι τιμές ανανεώνονται όταν ανοίγεις τη σελίδα· οι υπόλοιποι παράγοντες χρησιμοποιούν τα δεδομένα από την τελευταία φορά που άνοιξες κάθε νόμισμα.",
   col_coin: "Νόμισμα", col_price: "Τιμή", col_24h: "24ω",
   watchCount: (n) => `${n} ${n === 1 ? "νόμισμα" : "νομίσματα"}`,
+  watchEmpty: "Δεν έχεις ακόμα νομίσματα. Πάτησε «☆ Παρακολούθηση» δίπλα στο όνομα ενός νομίσματος για να το προσθέσεις εδώ.",
 
   methodIntro: "Καθένας από τους επτά παράγοντες παίρνει σκορ 0 έως 10 από ζωντανά δεδομένα, με σταθερά όρια. Το προφίλ σου ορίζει πόσο μετρά κάθε παράγοντας. Ο σταθμισμένος μέσος μετατρέπεται σε κλίμακα 1 έως 10. Παράγοντες χωρίς δεδομένα παραλείπονται και το βάρος τους μοιράζεται στους υπόλοιπους· η κάλυψη δεδομένων δείχνει πόσο από το βάρος είχε δεδομένα.",
   profileWeights: "Βάρη ανά προφίλ",

@@ -30,6 +30,7 @@
           <button type="button" data-theme-btn="light" aria-pressed="false" data-i18n-aria="themeLight" aria-label="Light" title="Light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"/></svg></button>
           <button type="button" data-theme-btn="dark" aria-pressed="false" data-i18n-aria="themeDark" aria-label="Dark" title="Dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 10A6 6 0 0 1 6 2.5a6 6 0 1 0 7.5 7.5z"/></svg></button>
         </div>
+        <button type="button" class="star-btn" id="watchOpen" aria-haspopup="dialog" data-i18n-aria="watchlist" aria-label="Watchlist" title="Watchlist"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6l1.9 4 4.4.5-3.2 3 .8 4.4L8 11.4l-3.9 2.1.8-4.4-3.2-3 4.4-.5z"/></svg><span class="star-count" id="watchCount" hidden>0</span></button>
       </div>
       <span class="status" id="status" data-s="idle"><i></i><span id="statusText" data-i18n="waiting">Waiting for data</span></span>
     </div>
@@ -55,8 +56,6 @@
     <button class="primary" id="go" type="button" data-i18n="analyze">Analyze</button>
   </section>
 
-  <section class="panel watch" id="watchPanel" hidden></section>
-
   <details class="panel weights" id="weightsPanel">
     <summary data-i18n="adjustWeights">Adjust weights</summary>
     <div id="weightsBody"></div>
@@ -72,6 +71,7 @@
 
   <p class="foot"><span data-i18n="footer">Data from the public CoinGecko and GitHub APIs, loaded live in your browser. This is a portfolio project and an analysis aid, not financial advice. Scores describe how well a coin fits a profile today; they do not predict prices.</span> <a href="https://github.com/Angelito10-png/coin-scorecard" target="_blank" rel="noopener" data-i18n="sourceCode">Source code</a></p>
 </div>
+<dialog id="watchDrawer" class="drawer" aria-labelledby="watchTitle"><div id="watchPanel" class="drawer-card"></div></dialog>
 <dialog id="quiz" class="quiz" aria-labelledby="quizTitle"></dialog>
 <script type="module" src="src/app.js?v=__V__"></script>
 </body>

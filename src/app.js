@@ -407,9 +407,15 @@ function watchButton(c) {
 }
 function renderWatch() {
   const panel = $("watchPanel"), list = watch.list();
-  if (!list.length) { panel.hidden = true; panel.replaceChildren(); return; }
-  panel.hidden = false;
+  const badge = $("watchCount");
+  badge.hidden = !list.length; badge.textContent = String(list.length);
+  $("watchOpen").classList.toggle("on", list.length > 0);
+  const close = el("button", { type: "button", class: "xbtn quiz-x", "aria-label": t("quizClose") }, "×");
+  close.addEventListener("click", () => $("watchDrawer").close());
   const pk = profile();
+  const head = el("div", { class: "quiz-head" }, el("div", {}, el("h2", { id: "watchTitle" }, t("watchlist")),
+    list.length ? el("div", { class: "muted", style: "font-size:.8rem;margin-top:2px" }, `${t("watchCount", list.length)} · ${customWeights ? t("scoredCustom") : t("scoredFor", E.PROFILES[pk].label)}`) : null), close);
+  if (!list.length) { panel.replaceChildren(head, el("div", { class: "drawer-body" }, el("p", { class: "muted", style: "margin:0" }, t("watchEmpty")))); return; }
   const rows = list.map((e) => {
     const c = fromSnapshot(e.coin), r = E.score(c, pk, customWeights), [vText, vKey] = E.verdict(r.total);
     return { e, c, r, vText, vKey };
@@ -419,7 +425,7 @@ function renderWatch() {
     const open = el("button", { type: "button", class: "w-coin", "aria-label": t("watchOpenAria", c.name) },
       logo ? el("img", { src: logo, alt: "", width: 24, height: 24 }) : el("span", { class: "mono-badge sm" }, (c.symbol || "?").slice(0, 3)),
       el("span", { class: "w-name" }, el("b", {}, c.name), el("small", { class: "muted mono" }, c.symbol)));
-    open.addEventListener("click", () => { analyze(c.id); window.scrollTo({ top: $("result").offsetTop - 12, behavior: "smooth" }); });
+    open.addEventListener("click", () => { $("watchDrawer").close(); analyze(c.id); window.scrollTo({ top: $("result").offsetTop - 12, behavior: "smooth" }); });
     const rm = el("button", { type: "button", class: "xbtn", "aria-label": t("watchRemoveAria", c.name) }, "×");
     rm.addEventListener("click", () => { watch.remove(c.id); renderWatch(); const wb = document.getElementById("watchBtn"); if (wb && current) wb.replaceWith(watchButton(current)); });
     return el("li", { class: "w-row" + (current && current.id === c.id ? " on" : "") },
@@ -430,11 +436,9 @@ function renderWatch() {
       rm);
   });
   const at = watchPricesAt ? t("watchPrices", watchPricesAt.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" })) : t("watchPricesOld");
-  panel.replaceChildren(
-    el("div", { class: "section-head" }, el("h2", {}, t("watchlist")), el("span", { class: "muted", style: "font-size:.82rem" }, `${t("watchCount", list.length)} · ${customWeights ? t("scoredCustom") : t("scoredFor", E.PROFILES[pk].label)}`)),
-    el("div", { class: "w-head muted", "aria-hidden": "true" }, el("span", {}, t("col_coin")), el("span", { class: "num" }, t("col_price")), el("span", { class: "num" }, t("col_24h")), el("span", {}, t("col_score")), el("span", {})),
+  panel.replaceChildren(head, el("div", { class: "drawer-body" },
     el("ul", { class: "w-list" }, ...items),
-    el("p", { class: "muted", style: "margin:10px 0 0;font-size:.78rem" }, `${at}. ${t("watchNote")}`));
+    el("p", { class: "muted", style: "margin:12px 0 0;font-size:.78rem" }, `${at}. ${t("watchNote")}`)));
 }
 async function refreshWatchPrices() {
   const ids = watch.ids();
@@ -548,6 +552,8 @@ function init() {
   if (url.weights) { customWeights = url.weights; $("weightsPanel").open = true; }
   renderWeights();
   $("go").addEventListener("click", () => analyze());
+  $("watchOpen").addEventListener("click", () => { renderWatch(); $("watchDrawer").showModal(); });
+  $("watchDrawer").addEventListener("click", (e) => { if (e.target === $("watchDrawer")) $("watchDrawer").close(); });
   $("quizBtn").addEventListener("click", () => { renderQuiz(); $("quiz").showModal(); });
   $("quiz").addEventListener("click", (e) => { if (e.target === $("quiz")) $("quiz").close(); }); // click on the backdrop
   $("coin").addEventListener("keydown", (e) => { if (e.key === "Enter") analyze(); });
