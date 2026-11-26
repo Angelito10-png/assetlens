@@ -1,5 +1,5 @@
 {
-  "name": "coin-scorecard",
+  "name": "assetlens",
   "version": "1.0.0",
   "description": "AssetLens: score crypto, US stocks and ETFs from 1 to 10 for your investor profile, and get a rule-based portfolio analysis.",
   "type": "module",

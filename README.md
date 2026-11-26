@@ -10,7 +10,7 @@ The app has three sections, switched from the tabs at the top:
 | **Stocks & ETFs** | 90 large US stocks and 34 popular ETFs | SEC EDGAR financial statements, weekly prices from Alpha Vantage |
 | **Portfolio** | Stocks, ETFs and crypto held together | All of the above |
 
-**Live demo:** https://angelito10-png.github.io/coin-scorecard/
+**Live demo:** https://angelito10-png.github.io/assetlens/
 
 ![AssetLens showing Chainlink scored for a long-term investor](docs/screenshot.png)
 
