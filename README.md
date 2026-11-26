@@ -164,6 +164,23 @@ Log in and sign up use [Supabase](https://supabase.com) (free tier): email and p
 4. Optionally, in **Authentication → Sign In / Providers → Email**, turn off "Confirm email" so new accounts can log in at once (the free plan sends only a few emails an hour).
 5. In **Project Settings → API**, copy the project URL and the anon (or publishable) key, and add them to the GitHub repository as **variables** (Settings → Secrets and variables → Actions → Variables) named `SUPABASE_URL` and `SUPABASE_ANON_KEY`. The deploy job writes them into `src/config.js`.
 
+## Help assistant
+
+A "?" button on every page opens a small chat for questions about the app and its terms ("what is FDV?", "why is this score 5.2?", "is it better to invest all at once?").
+
+- **Always works:** the app carries its own help text (`src/help-kb.js`, about 30 checked explanations in English and Greek). Without AI, the best matches are shown as the answer, with related questions to tap.
+- **With AI (signed-in users):** the question goes to a Supabase Edge Function (`supabase/functions/ask/index.ts`) together with what is on screen and the matching help entries, so answers are about AssetLens and the numbers the user is looking at. The function checks the user's session, counts questions in the database (15 a day each by default) and calls Google Gemini (free tier, Flash-Lite). The AI key is a function secret and never reaches the browser.
+- **Guard rails:** the model is told to answer briefly in the user's language, to stay on the app and investing terms, and never to tell anyone to buy, sell or hold. Answers are rendered as text (bold, lists) without HTML.
+
+### Switching the AI on
+
+1. Get a free API key at [Google AI Studio](https://aistudio.google.com/apikey) (no card needed).
+2. Run [`docs/supabase.sql`](docs/supabase.sql) again in the SQL Editor. It adds the `ai_usage` table and the `bump_ai_usage()` function that counts questions.
+3. In Supabase, **Edge Functions → Deploy a new function → Via Editor**, name it `ask`, replace the template with [`supabase/functions/ask/index.ts`](supabase/functions/ask/index.ts) and click **Deploy function**.
+4. **Edge Functions → Secrets:** add `GEMINI_API_KEY` with the key. Optional: `ASK_DAILY_LIMIT` (default 15), `GEMINI_MODEL` (default `gemini-flash-lite-latest`), `ALLOWED_ORIGINS` (default the GitHub Pages site and localhost).
+
+Note: on Google's free tier, prompts may be used to improve Google's products, so the chat tells users not to type personal data.
+
 ## Architecture
 
 No framework, no chart library, no build step, and no server of its own (accounts use Supabase's hosted API). The radar chart is hand-built SVG. It is a static site of plain ES modules, so it deploys anywhere.
@@ -174,7 +191,9 @@ crypto.html, markets.html, portfolio.html, invest.html   the four sections (old 
 src/home.js, src/invest-app.js   the home page and the investing guide, calculator and backtest
 src/dca.js          monthly plan, goal, required return and backtest maths: pure functions
 src/account.js, src/config.js   accounts: Supabase sign-in, sync of saved data, settings filled at deploy
-src/i18n-site.js    English and Greek text for the home page, guide and accounts
+src/i18n-site.js    English and Greek text for the home page, guide, accounts and help assistant
+src/helpbot.js, src/help-kb.js   help assistant: chat window, the app's help text and its search
+supabase/functions/ask/index.ts   Edge Function behind the AI answers (Gemini, per-user daily limit)
 styles.css          design tokens (light and dark themes) and layout
 src/engine.js       crypto scoring engine: pure functions, no DOM or network
 src/markets-engine.js  stock and ETF factors, profiles and caps
@@ -203,7 +222,7 @@ tests/              unit tests for the engine, a regression test on real capture
 ## Run it locally
 
 ```bash
-npm test     # 67 unit tests, Node 20+
+npm test     # 72 unit tests, Node 20+
 npm start    # serves the site at http://localhost:3000
 ```
 
