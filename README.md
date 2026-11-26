@@ -39,7 +39,7 @@ Results are shareable: the URL carries the coin, profile, custom weights and com
 
 On wide screens every page has two side columns. On smaller screens they move below the main content.
 
-- **Market overview (left):** S&P 500 and Nasdaq 100, followed through SPY and QQQ with the visitor's own price key (index prices can't be republished for free), Bitcoin, the total crypto market cap with Bitcoin's share (CoinGecko), and the crypto Fear & Greed index (alternative.me). Each source loads on its own, so one failure doesn't blank the rest.
+- **Market overview (left):** S&P 500 and Nasdaq 100, followed through SPY and QQQ with the visitor's own price key (index prices can't be republished for free), gold (through GLD, same key), Bitcoin, the total crypto market cap with Bitcoin's share (CoinGecko), and the crypto Fear & Greed index (alternative.me). Each source loads on its own, so one failure doesn't blank the rest.
 - **At a glance (right, stays in view):** the current asset's score, verdict and top three risks, plus up to three assets from the same sector, ETF category or crypto category that score higher for the chosen profile. On the portfolio page it shows the portfolio score, its main problems and the first fixes.
 
 ## Crypto scoring model
@@ -91,6 +91,20 @@ The same tools as the crypto section (profiles, weight sliders, radar, side-by-s
 | Income | Distribution yield | 0% | 10% | 5% |
 | Track record | Years since launch | 10% | 5% | 10% |
 
+**Commodities** (gold, silver, platinum, copper, oil, natural gas, farm goods and broad baskets) are held through commodity ETFs, because a commodity has no earnings or balance sheet to read. They get their own factors:
+
+| Factor | What it measures | Aggressive | Defensive | Long-term |
+|---|---|---:|---:|---:|
+| Cost | Expense ratio | 10% | 15% | 25% |
+| Structure | Physical metal in a vault (best), futures (roll costs), futures with a K-1 tax form (worst) | 10% | 20% | 20% |
+| Hedge value | How well the commodity has protected against inflation and stock market falls (gold highest, natural gas lowest) | 5% | 25% | 20% |
+| Trend | 1-year and 6-month return, position vs the 40-week average | 45% | 0% | 5% |
+| Size & liquidity | Assets under management, daily traded value | 10% | 15% | 10% |
+| Risk | Volatility and drawdown | 10% | 20% | 10% |
+| Track record | Years since launch | 10% | 5% | 10% |
+
+Commodity funds that hold futures are capped at 6 for long-term investors, because rolling contracts erodes returns over years (oil and gas funds have lost most of their value this way despite rising spot prices).
+
 Profile rules: defensive scores are capped at 5 for stocks with volatility above 45% and ETFs above 35%; long-term scores are capped at 6 for loss-making companies and for funds charging 0.5% a year or more.
 
 ### Where the data comes from, and why
@@ -102,7 +116,7 @@ Profile rules: defensive scores are capped at 5 for stocks with volatility above
 
 ## Portfolio analyst
 
-Enter what you hold (any mix of stocks, ETFs and crypto, with the dollar value of each) and choose a profile. A rule-based analyst writes **what works, what doesn't and what to fix**, in order of impact. Every sentence comes from a fixed rule applied to your numbers, so the same portfolio always gets the same advice, and the rules are unit-tested.
+Enter what you hold (any mix of stocks, ETFs, commodity funds and crypto, with the dollar value of each) and choose a profile. A rule-based analyst writes **what works, what doesn't and what to fix**, in order of impact. Every sentence comes from a fixed rule applied to your numbers, so the same portfolio always gets the same advice, and the rules are unit-tested.
 
 It looks through funds into their sectors and top holdings, so owning NVDA next to QQQ counts as overlap, and a tech ETF counts toward your tech exposure.
 
@@ -111,10 +125,11 @@ It looks through funds into their sectors and top holdings, so owning NVDA next 
 | Portfolio volatility | 32% | 13% | 20% |
 | Crypto | 25% | 5% | 10% |
 | Bonds or gold, at least | – | 25% | – |
+| Commodities other than precious metals | 20% | 10% | 15% |
 | One holding | 30% | 15% | 20% |
 | One sector | 50% | 30% | 40% |
 
-Other rules: too few or too many positions, no broad core fund, no international exposure, two funds that hold the same thing, highly correlated holdings, fees above a cheaper equivalent in the same category, low income for a defensive investor, and holdings that score poorly for the profile.
+Other rules: a 3 to 15% gold position counts as a strength for defensive and long-term investors, more than 25% in gold is flagged, too few or too many positions, no broad core fund, no international exposure, two funds that hold the same thing, highly correlated holdings, fees above a cheaper equivalent in the same category, low income for a defensive investor, and holdings that score poorly for the profile.
 
 **Portfolio score** = the value-weighted average of the holdings' scores, minus 1 point for each serious problem and 0.5 for each moderate one (at most 3). A portfolio of great companies can still be a poor fit if one of them is 60% of a defensive investor's money. Volatility uses the covariance of weekly returns when prices are available, so diversification shows up in the number.
 
@@ -154,7 +169,7 @@ tests/              unit tests for the engine, a regression test on real capture
 ## Run it locally
 
 ```bash
-npm test     # 57 unit tests, Node 20+
+npm test     # 60 unit tests, Node 20+
 npm start    # serves the site at http://localhost:3000
 ```
 

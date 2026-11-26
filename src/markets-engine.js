@@ -6,7 +6,7 @@
 import { t } from "./i18n.js?v=__V__";
 import "./i18n-markets.js?v=__V__";
 import { lin, clamp, fmtBig, fmtPct, verdict } from "./engine.js?v=__V__";
-import { stockByTicker, etfByTicker, ETF_ASSET_CLASS } from "./universe.js?v=__V__";
+import { stockByTicker, etfByTicker, etfAssetClass } from "./universe.js?v=__V__";
 
 const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
 const log10 = (x) => Math.log10(Math.max(x, 1e-9));
@@ -17,7 +17,7 @@ const ratio = (a, b) => (num(a) !== null && num(b) ? a / b : null);
 
 /**
  * Turn one snapshot entry (markets.json) into the flat object the factors read.
- * kind is "stock" or "etf". Ratios are computed here so the UI can show them.
+ * kind is "stock", "etf" or "commodity" (a commodity fund). Ratios are computed here so the UI can show them.
  */
 export function normalizeAsset(entry, kind) {
   if (!entry) return null;
@@ -31,9 +31,10 @@ export function normalizeAsset(entry, kind) {
     yield: num(px.yield), divTtm: num(px.divTtm), dollarVol: num(px.dollarVol), historyYears: num(px.historyYears),
     weekly: px.weekly || null, news: Array.isArray(entry.news) ? entry.news : [], priceSource: entry.priceSource || null,
   };
-  if (kind === "etf") {
+  if (kind === "etf" || kind === "commodity") {
     const e = etfByTicker(entry.t) || {};
-    return { ...base, name: e.name || entry.name, cat: e.cat || null, issuer: e.issuer || null, er: num(e.er), holdings: num(e.holdings), top10: num(e.top10), aum: num(e.aum) === null ? null : e.aum * 1e9, since: num(e.since), top: e.top || [], sectorMix: e.sectors || null, crypto: e.crypto || null, assetClass: e.crypto ? "crypto" : ETF_ASSET_CLASS[e.cat] || "equity" };
+    const fund = { ...base, name: e.name || entry.name, cat: e.cat || null, issuer: e.issuer || null, er: num(e.er), holdings: num(e.holdings), top10: num(e.top10), aum: num(e.aum) === null ? null : e.aum * 1e9, since: num(e.since), top: e.top || [], sectorMix: e.sectors || null, crypto: e.crypto || null, assetClass: etfAssetClass(e) };
+    return kind === "commodity" ? { ...fund, sub: e.sub || null, metal: e.metal || null, form: e.form || null, k1: !!e.k1, hedge: num(e.hedge) } : fund;
   }
   const s = stockByTicker(entry.t);
   const mcap = base.price !== null && num(f.shares) ? base.price * f.shares : null;
@@ -183,6 +184,43 @@ const ETF_FACTORS = [
   }),
 ];
 
+/* Commodity funds: no earnings or dividends, so cost, structure, the role in a portfolio and the price trend matter most. */
+const byKey = (list, key) => list.find((F) => F.key === key);
+const COMMODITY_FACTORS = [
+  factor("cost", (c) => {
+    if (c.er === null) return { score: null, notes: [t("mn_noFacts")], inputs: [], missing: true };
+    const per10k = c.er * 100;
+    return { score: lin(c.er, 1.0, 0.1), notes: [t("mn_er", c.er.toFixed(2), per10k.toFixed(0))], inputs: [[t("mi_er"), c.er.toFixed(2) + "%"], [t("mi_per10k"), "$" + per10k.toFixed(0)]] };
+  }),
+  factor("structure", (c) => {
+    if (!c.form) return { score: null, notes: [t("mn_noFacts")], inputs: [], missing: true };
+    const s = c.form === "physical" ? 10 : c.k1 ? 4 : 6;
+    const notes = [t(c.form === "physical" ? "mn_physical" : "mn_futures")];
+    if (c.form === "futures") notes.push(t(c.k1 ? "mn_k1" : "mn_noK1"));
+    return { score: s, notes, inputs: [[t("mi_form"), t("mform_" + c.form)], [t("mi_k1"), t(c.k1 ? "m_yes" : "m_no")]] };
+  }),
+  factor("hedge", (c) => {
+    if (c.hedge === null) return { score: null, notes: [t("mn_noFacts")], inputs: [], missing: true };
+    return { score: c.hedge, notes: [t("mn_hedge_" + c.metal)], inputs: [[t("mi_commodity"), t("mcm_" + c.metal)], [t("mi_group"), t("msub_" + c.sub)]] };
+  }),
+  factor("trend", (c) => {
+    const s = avg([[c.r1y === null ? null : lin(c.r1y, -25, 30), 0.4], [c.r6m === null ? null : lin(c.r6m, -15, 15), 0.3], [c.vsMa200 === null ? null : lin(c.vsMa200, -15, 15), 0.3]]);
+    const notes = [];
+    if (c.r1y !== null) notes.push(t("mn_trend", fmtPct(c.r1y), c.vsMa200 === null ? null : fmtPct(c.vsMa200)));
+    if (s === null) notes.push(t("mn_noPrice"));
+    return { score: s, notes, inputs: [[t("mi_6m"), fmtPct(c.r6m)], [t("mi_1y"), fmtPct(c.r1y)], [t("mi_ma200"), fmtPct(c.vsMa200)]] };
+  }),
+  factor("size", (c) => {
+    const s = avg([[c.aum ? lin(log10(c.aum), log10(2e8), log10(5e10)) : null, 0.6], [c.dollarVol ? lin(log10(c.dollarVol), log10(2e6), log10(1e9)) : null, 0.4]]);
+    const notes = [];
+    if (c.aum) notes.push(t("mn_aum", fmtBig(c.aum)));
+    if (c.dollarVol) notes.push(t("mn_dollarVol", fmtBig(c.dollarVol)));
+    return { score: s, notes, inputs: [[t("mi_aum"), fmtBig(c.aum)], [t("mi_dollarVol"), fmtBig(c.dollarVol)]] };
+  }),
+  byKey(ETF_FACTORS, "erisk"),
+  byKey(ETF_FACTORS, "track"),
+];
+
 const profile = (key, weights) => ({ key, get label() { return t("profile_" + key); }, get blurb() { return t("mblurb_" + key); }, weights });
 export const KINDS = {
   stock: {
@@ -201,6 +239,14 @@ export const KINDS = {
       longterm: profile("longterm", { cost: 30, diversif: 20, size: 10, perf: 15, erisk: 10, income: 5, track: 10 }),
     },
   },
+  commodity: {
+    factors: COMMODITY_FACTORS,
+    profiles: {
+      aggressive: profile("aggressive", { cost: 10, structure: 10, hedge: 5, trend: 45, size: 10, erisk: 10, track: 10 }),
+      defensive: profile("defensive", { cost: 15, structure: 20, hedge: 25, trend: 0, size: 15, erisk: 20, track: 5 }),
+      longterm: profile("longterm", { cost: 25, structure: 20, hedge: 20, trend: 5, size: 10, erisk: 10, track: 10 }),
+    },
+  },
 };
 export const PROFILE_KEYS = ["aggressive", "defensive", "longterm"];
 
@@ -215,6 +261,12 @@ export function flags(c) {
     if (c.pe !== null && c.pe > 60) f.push(["mid", t("mfl_pe", c.pe.toFixed(0))]);
     if (c.revGrowth !== null && c.revGrowth < -5) f.push(["mid", t("mfl_shrinking", Math.abs(c.revGrowth).toFixed(0))]);
     if (!c.hasFin) f.push(["info", t("mfl_noFin")]);
+  } else if (c.kind === "commodity") {
+    if (c.er !== null && c.er >= 0.75) f.push(["mid", t("mfl_er", c.er.toFixed(2))]);
+    if (c.form === "futures") f.push(["mid", t("mfl_futures")]);
+    if (c.k1) f.push(["info", t("mfl_k1")]);
+    if (c.aum !== null && c.aum < 1e9) f.push(["info", t("mfl_small", fmtBig(c.aum))]);
+    f.push(["info", t("mfl_noIncome")]);
   } else {
     if (c.er !== null && c.er >= 0.5) f.push(["mid", t("mfl_er", c.er.toFixed(2))]);
     if (c.top10 !== null && c.top10 >= 60 && c.holdings > 1) f.push(["mid", t("mfl_top10", c.top10)]);
@@ -249,6 +301,9 @@ export function score(c, profileKey, customWeights) {
   if (c.kind === "stock") {
     if (profileKey === "defensive" && c.vol !== null && c.vol > 45) cap(5, t("mcap_defVol", c.vol.toFixed(0)));
     if (profileKey === "longterm" && c.eps !== null && c.eps <= 0) cap(6, t("mcap_ltLoss"));
+  } else if (c.kind === "commodity") {
+    if (profileKey === "longterm" && c.form === "futures") cap(6, t("mcap_ltFutures"));
+    if (profileKey === "defensive" && c.vol !== null && c.vol > 35) cap(5, t("mcap_defVol", c.vol.toFixed(0)));
   } else {
     if (profileKey === "longterm" && c.er !== null && c.er >= 0.5) cap(6, t("mcap_ltFee", c.er.toFixed(2)));
     if (profileKey === "defensive" && c.vol !== null && c.vol > 35) cap(5, t("mcap_defVol", c.vol.toFixed(0)));

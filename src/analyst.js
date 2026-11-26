@@ -15,9 +15,9 @@ import { ETFS } from "./universe.js?v=__V__";
 
 /** What each profile can live with. Ranges are rules of thumb, documented in the README. */
 export const LIMITS = {
-  aggressive: { vol: 32, crypto: 25, safeMin: 0, single: 30, sector: 50 },
-  defensive: { vol: 13, crypto: 5, safeMin: 25, single: 15, sector: 30 },
-  longterm: { vol: 20, crypto: 10, safeMin: 0, single: 20, sector: 40 },
+  aggressive: { vol: 32, crypto: 25, safeMin: 0, single: 30, sector: 50, commodity: 20 },
+  defensive: { vol: 13, crypto: 5, safeMin: 25, single: 15, sector: 30, commodity: 10 },
+  longterm: { vol: 20, crypto: 10, safeMin: 0, single: 20, sector: 40, commodity: 15 },
 };
 const BROAD_HOLDINGS = 100; // funds with at least this many holdings don't count as concentration
 const pct = (x) => Math.round(x * 10) / 10;
@@ -28,7 +28,7 @@ const usd = (x) => "$" + Math.round(x).toLocaleString("en-US");
 export function exposures(holdings) {
   const total = holdings.reduce((s, h) => s + (h.value > 0 ? h.value : 0), 0);
   const w = (h) => (total ? h.value / total : 0);
-  const mix = { equity: 0, bonds: 0, gold: 0, crypto: 0 };
+  const mix = { equity: 0, bonds: 0, gold: 0, commodity: 0, crypto: 0 };
   const sectors = {};
   let intl = 0, equityKnown = 0;
   for (const h of holdings) {
@@ -91,9 +91,15 @@ export function analyze(holdings, profileKey, inner = false) {
   if (L.safeMin && safe < L.safeMin) { W("safe", "mid", fmt0(safe), L.safeMin); F("safe", L.safeMin); }
   else if (L.safeMin && safe >= L.safeMin) S("safe", fmt0(safe));
   if (profileKey === "aggressive" && safe > 30) W("tooSafe", "info", fmt0(safe));
+  // commodities other than precious metals: no income, futures roll costs, big swings
+  const cmd = ex.mix.commodity || 0, gold = ex.mix.gold || 0;
+  if (Math.round(cmd) > L.commodity) { W("commodity", cmd > L.commodity * 2 ? "high" : "mid", fmt0(cmd), L.commodity); F("commodity", L.commodity); }
+  if (gold >= 3 && gold <= 15 && profileKey !== "aggressive") S("gold", fmt0(gold));
+  else if (gold > 25) W("goldHeavy", "mid", fmt0(gold));
 
   // ---- concentration: single positions (broad funds excluded) and number of holdings
-  const singles = hs.map((h, i) => ({ h, w: ex.weights[i] })).filter(({ h }) => !(h.kind === "etf" && (h.holdings || 0) >= BROAD_HOLDINGS && h.cat !== "sector" && h.cat !== "thematic"));
+  // broad funds don't count as concentration; commodity funds have their own rules above
+  const singles = hs.map((h, i) => ({ h, w: ex.weights[i] })).filter(({ h }) => h.cat !== "commodity" && !(h.kind === "etf" && (h.holdings || 0) >= BROAD_HOLDINGS && h.cat !== "sector" && h.cat !== "thematic"));
   const big = singles.filter((x) => x.w > L.single).sort((a, b) => b.w - a.w);
   if (big.length) { W("single", big[0].w > L.single * 1.6 ? "high" : "mid", big[0].h.symbol, fmt0(big[0].w), L.single); F("single", big[0].h.symbol, L.single); }
   const hhi = ex.weights.reduce((s, w) => s + (w / 100) ** 2, 0);
@@ -143,7 +149,8 @@ export function analyze(holdings, profileKey, inner = false) {
     out.fees = { yearly: Math.round(fee), avg: Math.round((fee / etfValue) * 10000) / 100 };
     const pricey = etfs.filter((h) => h.er >= 0.3).sort((a, b) => b.value * b.er - a.value * a.er)[0];
     if (pricey) {
-      const alt = ETFS.filter((e) => e.cat === pricey.cat && e.er < pricey.er && e.t !== pricey.symbol && !e.crypto).sort((a, b) => a.er - b.er)[0];
+      // a cheaper fund in the same category (for commodities: the same commodity, e.g. GLD → GLDM)
+      const alt = ETFS.filter((e) => e.cat === pricey.cat && (pricey.cat !== "commodity" || e.metal === pricey.metal) && e.er < pricey.er && e.t !== pricey.symbol && !e.crypto).sort((a, b) => a.er - b.er)[0];
       W("fee", "mid", pricey.symbol, pricey.er.toFixed(2), usd((pricey.value * pricey.er) / 100));
       if (alt) F("fee", pricey.symbol, alt.t, alt.er.toFixed(2), usd((pricey.value * (pricey.er - alt.er)) / 100));
     } else if (out.fees.avg <= 0.15) S("fees", out.fees.avg.toFixed(2), usd(out.fees.yearly));
