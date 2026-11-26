@@ -26,9 +26,11 @@ const FEEDS = [
 async function get(url, as = "text") {
   const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(20000) });
   if (!r.ok) {
-    const body = (await r.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160);
-    const kind = /cloudflare|cf-ray|attention required/i.test(body) ? " (blocked by Cloudflare)" : "";
-    throw new Error(`${r.status}${kind} ${url.replace(/auth_token=[^&]+/, "auth_token=***")} ${kind ? "" : body}`);
+    const body = (await r.text().catch(() => "")).replace(/\s+/g, " ");
+    const blocked = /cloudflare|cf-ray|attention required/i.test(body);
+    const err = new Error(`${r.status}${blocked ? " (blocked by Cloudflare)" : ""} ${url.replace(/auth_token=[^&]+/, "auth_token=***")} ${blocked ? "" : body.slice(0, 160)}`);
+    err.blocked = blocked;
+    throw err;
   }
   return as === "json" ? r.json() : r.text();
 }
@@ -58,7 +60,10 @@ async function main() {
         used.push("CryptoPanic");
         console.log(`CryptoPanic (${plan}): ${n} posts`);
         break;
-      } catch (e) { console.warn(`CryptoPanic ${plan} failed:`, e.message); }
+      } catch (e) {
+        console.warn(`CryptoPanic ${plan} failed:`, e.message);
+        if (e.blocked) break; // Cloudflare refuses this network outright; other paths won't differ.
+      }
     }
   }
 
