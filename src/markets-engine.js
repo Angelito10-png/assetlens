@@ -94,7 +94,7 @@ const STOCK_FACTORS = [
   factor("health", (c) => {
     if (!c.hasFin) return { score: null, notes: [t("mn_noFin")], inputs: [], missing: true };
     if (c.sector === "financials") {
-      const s = c.eqAssets === null ? null : lin(c.eqAssets, 5, 15);
+      const s = c.eqAssets === null ? null : lin(c.eqAssets, 4, 10);
       return { score: s, notes: [s === null ? t("mn_noBalance") : t("mn_bankCapital", c.eqAssets.toFixed(1))], inputs: [[t("mi_eqAssets"), fx(c.eqAssets, 1, "%")], [t("mi_equity"), fmtBig(c.equity)], [t("mi_assets"), fmtBig(c.assets)]], missing: s === null };
     }
     const deS = c.negEquity ? 2 : c.de === null ? null : lin(c.de, 2.5, 0.2);
@@ -117,6 +117,7 @@ const STOCK_FACTORS = [
   }),
   factor("momentum", momentum),
   factor("risk", (c) => {
+    if (c.vol === null && c.dd1y === null) return { score: null, notes: [t("mn_noPrice")], inputs: [[t("mi_mcap"), fmtBig(c.mcap)]], missing: true };
     const parts = [[c.vol === null ? null : lin(c.vol, 60, 15), 0.35], [c.dd1y === null ? null : lin(c.dd1y, -50, -8), 0.25], [c.beta === null ? null : lin(c.beta, 2, 0.6), 0.2], [c.mcap ? lin(log10(c.mcap), 10, 12) : null, 0.2]];
     const notes = [];
     if (c.vol !== null) notes.push(t("mn_vol", c.vol.toFixed(0)));

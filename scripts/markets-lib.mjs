@@ -66,6 +66,17 @@ function latestInstant(facts) {
   return inst.length ? inst[inst.length - 1] : null;
 }
 
+/**
+ * Shares outstanding: the cover-page count (dei) when it is recent, otherwise
+ * the latest diluted weighted-average count. Some filings tag the weighted
+ * count in millions by mistake, so values under a million are ignored.
+ */
+function pickShares(weighted, dei, bsDate) {
+  if (dei && dei.val > 1e6 && (!bsDate || Math.abs(days(dei.end, bsDate)) < 200)) return dei.val;
+  const ok = weighted.filter((f) => f.val > 1e6);
+  return ok.length ? ok[ok.length - 1].val : dei && dei.val > 1e6 ? dei.val : null;
+}
+
 const REVENUE = ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "SalesRevenueNet", "RevenueFromContractWithCustomerIncludingAssessedTax", "RevenuesNetOfInterestExpense", "SalesRevenueGoodsNet"];
 
 /**
@@ -105,7 +116,7 @@ export function fundamentals(cf) {
     eps: fresh(eps), fcf: fresh(ocf) !== null ? fresh(ocf) - (fresh(capex) || 0) : null,
     revGrowth: r2(g(rev)), revCagr3: r2(g(rev, 3)), epsGrowth: eps.years.length > 1 && eps.years[1].val > 0 ? r2((eps.years[0].val / eps.years[1].val - 1) * 100) : null,
     niGrowth: r2(g(ni)),
-    shares: shares.length ? shares[shares.length - 1].val : sharesDei ? sharesDei.val : null,
+    shares: pickShares(shares, sharesDei, bsDate),
     equity: equityF ? equityF.val : null, assets: assetsF ? assetsF.val : null, cash: cashF ? cashF.val : null, debt,
     balanceDate: bsDate,
   };
