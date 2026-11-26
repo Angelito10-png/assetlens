@@ -20,7 +20,8 @@ Score any cryptocurrency from 1 to 10 for **your** investor profile (aggressive,
 8. **Compare** up to three coins side by side: overlaid radar shapes plus a table of every score, with the best value in each row marked.
 9. **English and Greek.** Every text, including factor explanations, risk flags and recommendations, comes from a translation dictionary (`src/i18n.js`). The language follows your browser and can be switched at any time.
 10. **Light and dark themes**, following your system setting or chosen by hand.
-11. **Latest news** for the selected coin: recent headlines from CryptoPanic and major crypto news sites, refreshed every 3 hours.
+11. **Profile quiz.** Not sure which profile fits you? Five questions (reaction to a 40% drop, time horizon, goal, preferred kind of coin, how you manage a position) pick one, show how your answers split, and apply it in one click.
+12. **Latest news** for the selected coin: recent headlines from CryptoPanic and major crypto news sites, refreshed every 3 hours.
 
 Results are shareable: the URL carries the coin, profile, custom weights and compared coins, for example `?coin=ethereum&profile=defensive&vs=solana,chainlink&lang=el`.
 
@@ -53,6 +54,7 @@ No framework, no chart library, no build step, no backend. The radar chart is ha
 index.html          page shell
 styles.css          design tokens (light and dark themes) and layout
 src/engine.js       scoring engine: pure functions, no DOM or network
+src/quiz.js         investor-profile quiz: questions and scoring, pure functions
 src/i18n.js         English and Greek dictionaries, t() lookup
 src/api.js          CoinGecko and GitHub clients with sessionStorage caching and rate-limit handling
 scripts/            build step that collects news headlines (runs in GitHub Actions)
@@ -67,7 +69,7 @@ tests/              unit tests for the engine, a regression test on real capture
 ## Run it locally
 
 ```bash
-npm test     # 22 unit tests, Node 20+
+npm test     # 26 unit tests, Node 20+
 npm start    # serves the site at http://localhost:3000
 ```
 

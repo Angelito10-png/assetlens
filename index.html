@@ -50,6 +50,7 @@
         <label><input type="radio" name="profile" id="p-longterm" value="longterm" checked><span data-i18n="profile_longterm">Long-term</span></label>
       </div>
       <div class="seg-note" id="profNote"></div>
+      <button type="button" class="linkbtn" id="quizBtn" data-i18n="quizOpen">Not sure? Take the 5-question quiz</button>
     </div>
     <button class="primary" id="go" type="button" data-i18n="analyze">Analyze</button>
   </section>
@@ -69,6 +70,7 @@
 
   <p class="foot"><span data-i18n="footer">Data from the public CoinGecko and GitHub APIs, loaded live in your browser. This is a portfolio project and an analysis aid, not financial advice. Scores describe how well a coin fits a profile today; they do not predict prices.</span> <a href="https://github.com/Angelito10-png/coin-scorecard" target="_blank" rel="noopener" data-i18n="sourceCode">Source code</a></p>
 </div>
+<dialog id="quiz" class="quiz" aria-labelledby="quizTitle"></dialog>
 <script type="module" src="src/app.js?v=__V__"></script>
 </body>
 </html>

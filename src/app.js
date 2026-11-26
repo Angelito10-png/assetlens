@@ -1,6 +1,7 @@
 import * as E from "./engine.js?v=__V__";
 import { topCoins, coinInfo, searchCoins, githubActivity, newsFeed, ApiError } from "./api.js?v=__V__";
 import { t, setLang, getLang } from "./i18n.js?v=__V__";
+import { QUESTIONS, PROFILE_KEYS, quizResult } from "./quiz.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
 const QUICK = [["bitcoin", "Bitcoin"], ["ethereum", "Ethereum"], ["solana", "Solana"], ["chainlink", "Chainlink"], ["dogecoin", "Dogecoin"], ["pepe", "Pepe"]];
@@ -384,6 +385,61 @@ function renderMethod() {
   );
 }
 
+/* ---------- profile quiz ---------- */
+let quizAnswers = [];
+let quizShowResult = false;
+function setProfile(key) {
+  $("p-" + key).checked = true;
+  store.set("cs-profile", key);
+  $("profNote").textContent = E.PROFILES[key].blurb;
+  customWeights = null; renderWeights(); render(); writeUrl();
+}
+function renderQuiz() {
+  const d = $("quiz");
+  const total = QUESTIONS.length, answered = quizAnswers.filter((a) => Number.isInteger(a)).length;
+  const r = quizResult(quizAnswers);
+  const close = el("button", { type: "button", class: "xbtn quiz-x", "aria-label": t("quizClose") }, "×");
+  close.addEventListener("click", () => d.close());
+  const head = el("div", { class: "quiz-head" }, el("h2", { id: "quizTitle" }, quizShowResult ? t("quizResult") : t("quizTitle")), close);
+  let body, foot;
+  if (quizShowResult && r.complete) {
+    const P = E.PROFILES[r.profile], top = r.points[r.profile];
+    const tie = PROFILE_KEYS.filter((k) => r.points[k] === top).length > 1;
+    body = el("div", { class: "quiz-body" },
+      el("div", { class: "quiz-result" }, el("b", {}, P.label), el("p", {}, P.blurb)),
+      el("p", { style: "margin:0" }, t("quizWhy", top) + (tie ? " " + t("quizTie") : "")),
+      el("div", { class: "cmp" }, el("div", { class: "eyebrow" }, t("quizPoints")),
+        ...PROFILE_KEYS.map((k) => el("div", { class: "cmp-row" + (k === r.profile ? " on" : "") }, el("span", {}, E.PROFILES[k].label), el("div", { class: "track" }, el("i", { style: `width:${(r.points[k] / total) * 100}%` })), el("span", { class: "num", style: "text-align:right" }, `${r.points[k]}/${total}`)))),
+      el("p", { class: "muted", style: "margin:0;font-size:.8rem" }, t("quizNote")));
+    const apply = el("button", { type: "button", class: "primary" }, t("quizApply", P.label));
+    apply.addEventListener("click", () => { setProfile(r.profile); d.close(); });
+    const again = el("button", { type: "button", class: "ghost" }, t("quizRetake"));
+    again.addEventListener("click", () => { quizAnswers = []; quizShowResult = false; renderQuiz(); d.querySelector("input")?.focus(); });
+    foot = el("div", { class: "quiz-foot" }, again, apply);
+  } else {
+    body = el("div", { class: "quiz-body" },
+      el("p", { class: "muted", style: "margin:0" }, t("quizIntro")),
+      ...QUESTIONS.map((q, qi) => el("fieldset", { class: "quiz-q" },
+        el("legend", {}, el("span", { class: "quiz-n" }, String(qi + 1)), t("quiz_" + q.key)),
+        ...q.options.map((_, oi) => {
+          const input = el("input", { type: "radio", name: "quiz-" + q.key, value: oi });
+          if (quizAnswers[qi] === oi) input.checked = true;
+          input.addEventListener("change", () => { quizAnswers[qi] = oi; updateQuizFoot(); });
+          return el("label", { class: "quiz-opt" }, input, el("span", {}, t(`quiz_${q.key}_${oi}`)));
+        }))));
+    const see = el("button", { type: "button", class: "primary", id: "quizSee" }, t("quizSee"));
+    see.disabled = answered < total;
+    see.addEventListener("click", () => { quizShowResult = true; renderQuiz(); d.querySelector(".quiz-foot .primary")?.focus(); });
+    foot = el("div", { class: "quiz-foot" }, el("span", { class: "muted", id: "quizProg", "aria-live": "polite" }, t("quizProgress", answered, total)), see);
+  }
+  d.replaceChildren(el("div", { class: "quiz-card" }, head, body, foot));
+}
+function updateQuizFoot() {
+  const n = quizAnswers.filter((a) => Number.isInteger(a)).length;
+  $("quizProg").textContent = t("quizProgress", n, QUESTIONS.length);
+  $("quizSee").disabled = n < QUESTIONS.length;
+}
+
 /* ---------- language & theme ---------- */
 function applyStatic() {
   document.documentElement.lang = getLang();
@@ -398,6 +454,7 @@ function applyLang(lang, save) {
   applyStatic();
   $("profNote").textContent = E.PROFILES[profile()].blurb;
   renderWeights(); renderMethod();
+  if ($("quiz").open) { const y = $("quiz").querySelector(".quiz-body")?.scrollTop; renderQuiz(); const b = $("quiz").querySelector(".quiz-body"); if (b && y) b.scrollTop = y; }
   if (current) { render(); writeUrl(); }
   if (lastError) { const [h, b] = errorCopy(lastError); notice(lastError instanceof ApiError && lastError.kind === "rate_limit" ? "warn" : "bad", h, b); status("error", t(current ? "showingLast" : "noData")); }
   else if (meta) setLiveStatus();
@@ -433,6 +490,8 @@ function init() {
   if (url.weights) { customWeights = url.weights; $("weightsPanel").open = true; }
   renderWeights();
   $("go").addEventListener("click", () => analyze());
+  $("quizBtn").addEventListener("click", () => { renderQuiz(); $("quiz").showModal(); });
+  $("quiz").addEventListener("click", (e) => { if (e.target === $("quiz")) $("quiz").close(); }); // click on the backdrop
   $("coin").addEventListener("keydown", (e) => { if (e.key === "Enter") analyze(); });
 
   renderMethod();
