@@ -13,7 +13,7 @@ import { writeFileSync } from "node:fs";
 import { parseRss, coinMatchers, matchHeadline, fromCryptoPanic, groupNews } from "./news-lib.mjs";
 
 const OUT = process.argv[2] || "news.json";
-const UA = { "user-agent": "coin-scorecard-news/1.0 (+https://github.com/Angelito10-png/coin-scorecard)" };
+const UA = { "user-agent": "assetlens-news/1.0 (+https://github.com/Angelito10-png/assetlens)" };
 const FEEDS = [
   ["CoinDesk", "https://www.coindesk.com/arc/outboundfeeds/rss/"],
   ["Cointelegraph", "https://cointelegraph.com/rss"],

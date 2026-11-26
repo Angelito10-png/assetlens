@@ -23,7 +23,7 @@ import { parseAlphaWeekly, packBars } from "../src/prices.js";
 
 const OUT = process.argv[2] || "markets.json";
 const ONLY = process.argv[3] ? new Set(process.argv[3].split(",")) : null;
-const UA = process.env.SEC_USER_AGENT || "coin-scorecard portfolio demo (https://github.com/Angelito10-png/coin-scorecard)";
+const UA = process.env.SEC_USER_AGENT || "assetlens portfolio demo (https://github.com/Angelito10-png/assetlens)";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const FEEDS = [
   ["CNBC", "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147"],

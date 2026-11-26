@@ -1,6 +1,6 @@
-# Coin Scorecard
+# AssetLens
 
-Score any cryptocurrency, US stock or ETF from 1 to 10 for **your** investor profile (aggressive, defensive or long-term), and get a rule-based analyst's opinion on your whole portfolio. Every point of every score is explained: you see each factor's sub-score, its weight for your profile, and the raw numbers behind it.
+**AssetLens** scores any cryptocurrency, US stock or ETF from 1 to 10 for **your** investor profile (aggressive, defensive or long-term), and gives a rule-based analyst's opinion on your whole portfolio. Every point of every score is explained: you see each factor's sub-score, its weight for your profile, and the raw numbers behind it.
 
 The app has three sections, switched from the tabs at the top:
 
@@ -10,9 +10,9 @@ The app has three sections, switched from the tabs at the top:
 | **Stocks & ETFs** | 90 large US stocks and 34 popular ETFs | SEC EDGAR financial statements, weekly prices from Alpha Vantage |
 | **Portfolio** | Stocks, ETFs and crypto held together | All of the above |
 
-**Live demo:** https://angelito10-png.github.io/coin-scorecard/
+**Live demo:** https://angelito10-png.github.io/assetlens/
 
-![Coin Scorecard showing Chainlink scored for a long-term investor](docs/screenshot.png)
+![AssetLens showing Chainlink scored for a long-term investor](docs/screenshot.png)
 
 > This is a portfolio project and an analysis aid, not financial advice.
 

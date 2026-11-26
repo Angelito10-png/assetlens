@@ -7,7 +7,7 @@
 const en = {
   // ---- page chrome ----
   eyebrow: "Crypto investment viability",
-  title: "Coin Scorecard",
+  title: "AssetLens",
   lede: "Pick a coin and your investor profile. The score is built from live CoinGecko and GitHub data, and every factor shows the numbers behind it.",
   cryptocurrency: "Cryptocurrency",
   coinPlaceholder: "Bitcoin, ETH, solana…",
@@ -277,7 +277,7 @@ const en = {
 
 const el = {
   eyebrow: "Επενδυτική αξιολόγηση κρυπτονομισμάτων",
-  title: "Coin Scorecard",
+  title: "AssetLens",
   lede: "Διάλεξε νόμισμα και επενδυτικό προφίλ. Το σκορ βγαίνει από ζωντανά δεδομένα του CoinGecko και του GitHub, και κάθε παράγοντας δείχνει τους αριθμούς πίσω του.",
   cryptocurrency: "Κρυπτονόμισμα",
   coinPlaceholder: "Bitcoin, ETH, solana…",

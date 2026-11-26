@@ -39,7 +39,7 @@ jobs:
           ALPHAVANTAGE_KEY: ${{ secrets.ALPHAVANTAGE_KEY }}
           ALPHAVANTAGE_PUBLISH: ${{ vars.ALPHAVANTAGE_PUBLISH }}
         run: |
-          node scripts/fetch-markets.mjs _site/markets.json || curl -fsS -o _site/markets.json https://angelito10-png.github.io/coin-scorecard/markets.json || echo "No markets snapshot this run"
+          node scripts/fetch-markets.mjs _site/markets.json || curl -fsS -o _site/markets.json https://angelito10-png.github.io/assetlens/markets.json || echo "No markets snapshot this run"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
