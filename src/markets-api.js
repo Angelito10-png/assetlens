@@ -27,7 +27,7 @@ let snapshot;
 /** The daily snapshot, or null when it is missing. Loaded once per page. */
 export async function loadSnapshot() {
   if (snapshot !== undefined) return snapshot;
-  for (const url of ["markets.json", "data/markets.dev.json"]) {
+  for (const url of ["markets.json"]) {
     try {
       const r = await fetch(url, { cache: "no-cache" });
       if (r.ok) { const j = await r.json(); if (j && j.stocks) return (snapshot = j); }

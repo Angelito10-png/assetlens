@@ -83,7 +83,8 @@ function pickShares(weighted, dei, bsDate) {
   const w = ok.length ? ok[ok.length - 1].val : null;
   // Companies with several share classes report one class on the cover page; the diluted count covers all of them.
   if (dei && dei.val > 1e6 && (!bsDate || Math.abs(days(dei.end, bsDate)) < 200) && !(w && dei.val < 0.8 * w)) return dei.val;
-  return w ?? (dei && dei.val > 1e6 ? dei.val : null);
+  // An old cover-page count (Visa's dates from 2010) is worse than none.
+  return w ?? (dei && dei.val > 1e6 && (!bsDate || Math.abs(days(dei.end, bsDate)) < 400) ? dei.val : null);
 }
 
 const REVENUE = ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "SalesRevenueNet", "RevenueFromContractWithCustomerIncludingAssessedTax", "RevenuesNetOfInterestExpense", "SalesRevenueGoodsNet"];

@@ -1,6 +1,14 @@
 # Coin Scorecard
 
-Score any cryptocurrency from 1 to 10 for **your** investor profile (aggressive, defensive or long-term), using live market data from CoinGecko and development activity from GitHub. Every point of the score is explained: you see each factor's sub-score, its weight for your profile, and the raw numbers behind it.
+Score any cryptocurrency, US stock or ETF from 1 to 10 for **your** investor profile (aggressive, defensive or long-term), and get a rule-based analyst's opinion on your whole portfolio. Every point of every score is explained: you see each factor's sub-score, its weight for your profile, and the raw numbers behind it.
+
+The app has three sections, switched from the tabs at the top:
+
+| Section | What it scores | Data |
+|---|---|---|
+| **Crypto** | Any coin listed on CoinGecko | CoinGecko market data, GitHub development activity |
+| **Stocks & ETFs** | 90 large US stocks and 34 popular ETFs | SEC EDGAR financial statements, weekly prices from Alpha Vantage |
+| **Portfolio** | Stocks, ETFs and crypto held together | All of the above |
 
 **Live demo:** https://angelito10-png.github.io/coin-scorecard/
 
@@ -27,7 +35,7 @@ Score any cryptocurrency from 1 to 10 for **your** investor profile (aggressive,
 
 Results are shareable: the URL carries the coin, profile, custom weights and compared coins, for example `?coin=ethereum&profile=defensive&vs=solana,chainlink&lang=el`.
 
-## Scoring model
+## Crypto scoring model
 
 | Factor | What it measures | Aggressive | Defensive | Long-term |
 |---|---|---:|---:|---:|
@@ -48,20 +56,85 @@ Design choices worth calling out:
 
 Limits: neither source says who runs a project, so GitHub activity stands in for team credibility. The app cannot detect anonymous teams, past scandals, missing audits or token unlock dates.
 
+## Stocks & ETFs
+
+The same tools as the crypto section (profiles, weight sliders, radar, side-by-side comparison, quiz, watchlist, sector menu, news, Greek and English), on a different set of factors.
+
+**Stocks** are scored from the companies' own filings with the SEC (trailing twelve months where the quarterly reports allow it), plus prices when available:
+
+| Factor | What it measures | Aggressive | Defensive | Long-term |
+|---|---|---:|---:|---:|
+| Valuation | P/E, price/sales, free-cash-flow yield (P/B for banks and REITs) | 10% | 20% | 20% |
+| Growth | Revenue growth (1 and 3 years), EPS growth | 30% | 5% | 25% |
+| Profitability | Net and operating margin, return on equity | 15% | 20% | 25% |
+| Financial health | Debt to equity, cash vs debt (equity to assets for banks) | 5% | 25% | 15% |
+| Dividend | Yield and payout ratio | 0% | 15% | 5% |
+| Momentum | 3, 6 and 12-month return, position vs the 40-week average | 30% | 0% | 5% |
+| Risk | Volatility, drawdown, beta | 10% | 15% | 5% |
+
+**ETFs** are scored on what matters for a fund:
+
+| Factor | What it measures | Aggressive | Defensive | Long-term |
+|---|---|---:|---:|---:|
+| Cost | Expense ratio | 10% | 15% | 30% |
+| Diversification | Number of holdings, weight of the top 10, sector or single-asset focus | 10% | 20% | 20% |
+| Size | Assets under management | 10% | 15% | 10% |
+| Performance | 1, 3 and 5-year returns | 45% | 5% | 15% |
+| Risk | Volatility and drawdown | 15% | 30% | 10% |
+| Income | Distribution yield | 0% | 10% | 5% |
+| Track record | Years since launch | 10% | 5% | 10% |
+
+Profile rules: defensive scores are capped at 5 for stocks with volatility above 45% and ETFs above 35%; long-term scores are capped at 6 for loss-making companies and for funds charging 0.5% a year or more.
+
+### Where the data comes from, and why
+
+- **Fundamentals: SEC EDGAR.** Public, free and official. The SEC API does not allow browser calls, so a GitHub Actions job (`scripts/fetch-markets.mjs`) reads each company's XBRL facts and recent filings at deploy time and publishes the result as `markets.json`. It handles the usual tagging differences between companies (several revenue and debt concepts, fiscal years that don't follow the calendar, share classes).
+- **Prices: Alpha Vantage, with the visitor's own free key.** Free price APIs don't allow their data to be republished on a public site. So the page asks each visitor for their own free key (25 calls a day), calls Alpha Vantage from their browser, and caches the weekly series locally for 20 hours. Without a key, stocks are scored on fundamentals alone and the page says which factors are missing. The snapshot job can also publish prices (`ALPHAVANTAGE_PUBLISH=1`) if a key with publishing rights is configured.
+- **ETF facts** (fee, holdings, sector split, launch year) are kept in `src/universe.js`, dated, from the issuers' fact sheets.
+- **News:** RSS headlines from public finance feeds, matched by ticker or company name, plus links to the latest 10-K, 10-Q and 8-K filings on sec.gov.
+
+## Portfolio analyst
+
+Enter what you hold (any mix of stocks, ETFs and crypto, with the dollar value of each) and choose a profile. A rule-based analyst writes **what works, what doesn't and what to fix**, in order of impact. Every sentence comes from a fixed rule applied to your numbers, so the same portfolio always gets the same advice, and the rules are unit-tested.
+
+It looks through funds into their sectors and top holdings, so owning NVDA next to QQQ counts as overlap, and a tech ETF counts toward your tech exposure.
+
+| Limit | Aggressive | Defensive | Long-term |
+|---|---:|---:|---:|
+| Portfolio volatility | 32% | 13% | 20% |
+| Crypto | 25% | 5% | 10% |
+| Bonds or gold, at least | – | 25% | – |
+| One holding | 30% | 15% | 20% |
+| One sector | 50% | 30% | 40% |
+
+Other rules: too few or too many positions, no broad core fund, no international exposure, two funds that hold the same thing, highly correlated holdings, fees above a cheaper equivalent in the same category, low income for a defensive investor, and holdings that score poorly for the profile.
+
+**Portfolio score** = the value-weighted average of the holdings' scores, minus 1 point for each serious problem and 0.5 for each moderate one (at most 3). A portfolio of great companies can still be a poor fit if one of them is 60% of a defensive investor's money. Volatility uses the covariance of weekly returns when prices are available, so diversification shows up in the number.
+
+Holdings stay in the browser and in the URL (`?h=s:AAPL:5000,e:VOO:10000,c:bitcoin:2000`), so a portfolio can be shared as a link.
+
 ## Architecture
 
 No framework, no chart library, no build step, no backend. The radar chart is hand-built SVG. It is a static site of plain ES modules, so it deploys anywhere.
 
 ```
-index.html          page shell
+index.html          crypto page shell (markets.html and portfolio.html share it)
 styles.css          design tokens (light and dark themes) and layout
-src/engine.js       scoring engine: pure functions, no DOM or network
+src/engine.js       crypto scoring engine: pure functions, no DOM or network
+src/markets-engine.js  stock and ETF factors, profiles and caps
+src/prices.js       weekly price statistics, beta, portfolio volatility, correlation
+src/analyst.js      portfolio analyst rules
+src/universe.js     the stock and ETF lists, sectors, ETF facts
+src/markets-api.js  snapshot loading, visitor's price key, local price cache
+src/markets-app.js, src/portfolio-app.js   the stocks & ETFs and portfolio pages
+src/ui.js           shared page parts: theme, language, dial, radar
+src/i18n-markets.js English and Greek text for the two new sections
 src/watchlist.js    watchlist stored in localStorage: snapshots, price refresh, pure functions
 src/categories.js   category menu (CoinGecko category ids) and ranking with the quick score
 src/quiz.js         investor-profile quiz: questions and scoring, pure functions
 src/i18n.js         English and Greek dictionaries, t() lookup
 src/api.js          CoinGecko and GitHub clients with sessionStorage caching and rate-limit handling
-scripts/            build step that collects news headlines (runs in GitHub Actions)
+scripts/            build steps that run in GitHub Actions: news headlines and the SEC snapshot
 src/app.js          UI: coin search, weight sliders, SVG radar chart, comparison, URL state
 tests/              unit tests for the engine, a regression test on real captured API data, and translation checks
 ```
@@ -73,11 +146,15 @@ tests/              unit tests for the engine, a regression test on real capture
 ## Run it locally
 
 ```bash
-npm test     # 33 unit tests, Node 20+
+npm test     # 50 unit tests, Node 20+
 npm start    # serves the site at http://localhost:3000
 ```
 
-Any static file server works, since the browser calls the public APIs directly.
+Any static file server works, since the browser calls the public APIs directly. The Stocks & ETFs and Portfolio sections need the SEC snapshot; build it once with
+
+```bash
+SEC_USER_AGENT="your-name you@example.com" node scripts/fetch-markets.mjs markets.json
+```
 
 ## Deployment
 
@@ -88,6 +165,10 @@ Every push to `main`, and a schedule every 3 hours, runs the tests and deploys t
 CryptoPanic needs a private API key and does not accept calls from browsers, so the page never calls it. Instead, the deploy job runs `scripts/fetch-news.mjs`, which reads the key from the `CRYPTOPANIC_TOKEN` repository secret, collects headlines and publishes only those as `news.json` next to the site. It also reads the public RSS feeds of several crypto news sites and matches headlines to coins by name or ticker, so news still works when no key is set. If every source fails, the deploy still goes ahead and the page says news is unavailable.
 
 Note: as of November 2026 CryptoPanic's Cloudflare protection refuses requests from GitHub Actions runners (HTTP 403), so on the hosted demo the headlines come from the RSS feeds. The CryptoPanic path is kept and works from networks CryptoPanic accepts.
+
+### SEC snapshot
+
+The deploy job also runs `scripts/fetch-markets.mjs`. The SEC asks automated clients to identify themselves, so the job reads a user agent with a contact address from the `SEC_USER_AGENT` repository secret. If the job fails, the previous `markets.json` is kept.
 
 ## License
 
