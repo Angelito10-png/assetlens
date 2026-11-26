@@ -76,3 +76,20 @@ test("ask function: needs a signed-in user, counts questions, stops at the limit
   assert.equal((await handle(new Request("https://p/ask", { method: "OPTIONS" }), env, fake)).status, 200);
   assert.equal((await handle(req("Bearer a.b.c"), { SUPABASE_URL: "https://p.supabase.co" }, fake)).status, 503, "no AI key → not configured");
 });
+
+test("ask function retries without thinkingConfig when Gemini answers 400", async () => {
+  const sent = [];
+  const fake = async (url, init) => {
+    if (url.endsWith("/auth/v1/user")) return new Response("{}", { status: 200 });
+    if (url.includes("bump_ai_usage")) return new Response("1", { status: 200 });
+    const body = JSON.parse(init.body); sent.push(body);
+    if (body.generationConfig.thinkingConfig) return new Response('{"error":{"message":"Budget 0 is invalid"}}', { status: 400 });
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "Ok" }] } }] }), { status: 200 });
+  };
+  const req = new Request("https://x/functions/v1/ask", { method: "POST", headers: { authorization: "Bearer a.b.c", apikey: "k" }, body: JSON.stringify({ q: "what is FDV?" }) });
+  const res = await handle(req, { SUPABASE_URL: "https://sb", GEMINI_API_KEY: "g" }, fake);
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).answer, "Ok");
+  assert.equal(sent.length, 2);
+  assert.equal(sent[1].generationConfig.thinkingConfig, undefined);
+});
