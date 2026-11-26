@@ -25,7 +25,11 @@ const FEEDS = [
 
 async function get(url, as = "text") {
   const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(20000) });
-  if (!r.ok) throw new Error(`${r.status} ${url.replace(/auth_token=[^&]+/, "auth_token=***")}`);
+  if (!r.ok) {
+    const body = (await r.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160);
+    const kind = /cloudflare|cf-ray|attention required/i.test(body) ? " (blocked by Cloudflare)" : "";
+    throw new Error(`${r.status}${kind} ${url.replace(/auth_token=[^&]+/, "auth_token=***")} ${kind ? "" : body}`);
+  }
   return as === "json" ? r.json() : r.text();
 }
 
@@ -41,14 +45,21 @@ async function main() {
     for (const c of coins) (symbolToIds[c.symbol.toUpperCase()] ||= []).push(c.id);
     // Only the first coin with a ticker gets it (the list is sorted by market cap).
     for (const k of Object.keys(symbolToIds)) symbolToIds[k] = symbolToIds[k].slice(0, 1);
-    try {
-      for (let page = 1; page <= 3; page++) {
-        const json = await get(`https://cryptopanic.com/api/developer/v2/posts/?auth_token=${encodeURIComponent(token)}&public=true&kind=news&page=${page}`, "json");
-        tagged.push(...fromCryptoPanic(json, symbolToIds));
-        if (!json.next) break;
-      }
-      used.push("CryptoPanic");
-    } catch (e) { console.warn("CryptoPanic failed:", e.message); }
+    // CryptoPanic serves each plan under its own path; try them in order until one answers.
+    for (const plan of ["developer/v2", "free/v2", "v1"]) {
+      try {
+        let n = 0;
+        for (let page = 1; page <= 3; page++) {
+          const json = await get(`https://cryptopanic.com/api/${plan}/posts/?auth_token=${encodeURIComponent(token)}&public=true&kind=news&page=${page}`, "json");
+          const got = fromCryptoPanic(json, symbolToIds);
+          tagged.push(...got); n += (json.results || []).length;
+          if (!json.next) break;
+        }
+        used.push("CryptoPanic");
+        console.log(`CryptoPanic (${plan}): ${n} posts`);
+        break;
+      } catch (e) { console.warn(`CryptoPanic ${plan} failed:`, e.message); }
+    }
   }
 
   const matchers = coinMatchers(coins.slice(0, 150));
