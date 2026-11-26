@@ -138,3 +138,8 @@ export function marketsFor(ids) {
   if (!ids.length) return Promise.resolve([]);
   return getJson(`${CG}/coins/markets?vs_currency=usd&ids=${ids.map(encodeURIComponent).join(",")}&sparkline=false&price_change_percentage=7d,30d,1y`, { maxAgeMs: 2 * 60_000 });
 }
+
+/** Top coins in one CoinGecko category (one request, cached 10 minutes). */
+export function categoryCoins(categoryId, perPage = 50) {
+  return getJson(`${CG}/coins/markets?vs_currency=usd&category=${encodeURIComponent(categoryId)}&order=market_cap_desc&per_page=${perPage}&page=1&sparkline=false&price_change_percentage=7d,30d,1y`, { maxAgeMs: 10 * 60_000 });
+}

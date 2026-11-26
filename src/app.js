@@ -1,7 +1,8 @@
 import * as E from "./engine.js?v=__V__";
-import { topCoins, coinInfo, searchCoins, githubActivity, newsFeed, marketsFor, ApiError } from "./api.js?v=__V__";
+import { topCoins, coinInfo, searchCoins, githubActivity, newsFeed, marketsFor, categoryCoins, ApiError } from "./api.js?v=__V__";
 import { t, setLang, getLang } from "./i18n.js?v=__V__";
 import { QUESTIONS, PROFILE_KEYS, quizResult } from "./quiz.js?v=__V__";
+import { CATEGORIES, categoryByKey, rankRows } from "./categories.js?v=__V__";
 import { createWatchlist, fromSnapshot, MAX as WATCH_MAX } from "./watchlist.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
@@ -245,6 +246,7 @@ function dial(score, vkey) {
 
 function render() {
   renderWatch();
+  if ($("catDrawer").open) renderCategory();
   if (!current) return;
   const c = current, pk = profile(), r = E.score(c, pk, customWeights), [vText, vKey] = E.verdict(r.total);
   const who = customWeights ? t("whoCustom") : t("whoProfile", r.profile.label);
@@ -447,6 +449,68 @@ async function refreshWatchPrices() {
   renderWatch();
 }
 
+/* ---------- categories ---------- */
+let catKey = null, catRows = null, catSort = "mcap", catError = null;
+function renderCatsNav() {
+  $("catsNav").replaceChildren(el("span", { class: "cats-label" }, t("categories")),
+    ...CATEGORIES.map((c) => {
+      const b = el("button", { type: "button", class: "chip", "aria-haspopup": "dialog" }, t("cat_" + c.key));
+      b.addEventListener("click", () => openCategory(c.key));
+      return b;
+    }));
+}
+async function openCategory(key) {
+  catKey = key; catRows = null; catError = null;
+  renderCategory();
+  if (!$("catDrawer").open) $("catDrawer").showModal();
+  try { catRows = await categoryCoins(categoryByKey(key).id); }
+  catch (e) { catError = e; }
+  if (catKey === key) renderCategory();
+}
+function renderCategory() {
+  const panel = $("catPanel");
+  if (!catKey) return;
+  const pk = profile(), name = t("cat_" + catKey);
+  const close = el("button", { type: "button", class: "xbtn quiz-x", "aria-label": t("quizClose") }, "×");
+  close.addEventListener("click", () => $("catDrawer").close());
+  const ranked = catRows ? rankRows(catRows, pk, customWeights, catSort) : [];
+  const who = customWeights ? t("whoCustom") : t("whoProfile", E.PROFILES[pk].label);
+  const head = el("div", { class: "quiz-head" }, el("div", {}, el("h2", { id: "catTitle" }, t("catTitle", name)),
+    catRows ? el("div", { class: "muted", style: "font-size:.8rem;margin-top:2px" }, t("catSub", ranked.length, who)) : null), close);
+  const tabs = el("div", { class: "cat-tabs", role: "group", "aria-label": t("categories") }, ...CATEGORIES.map((c) => {
+    const b = el("button", { type: "button", class: "chip", "aria-pressed": String(c.key === catKey) }, t("cat_" + c.key));
+    b.addEventListener("click", () => { if (c.key !== catKey) openCategory(c.key); });
+    return b;
+  }));
+  const sort = el("div", { class: "cat-sort" }, el("span", { class: "muted" }, t("sortBy")),
+    el("div", { class: "tgl" }, ...[["mcap", t("sortMcap")], ["score", t("sortScore")]].map(([k, label]) => {
+      const b = el("button", { type: "button", "aria-pressed": String(catSort === k) }, label);
+      b.addEventListener("click", () => { catSort = k; renderCategory(); });
+      return b;
+    })));
+  let list;
+  if (catError) { const [h, b] = errorCopy(catError); list = el("div", { class: "notice", "data-k": "warn" }, el("p", {}, el("b", {}, h)), el("p", {}, b)); }
+  else if (!catRows) list = el("p", { class: "muted" }, t("loading"));
+  else if (!ranked.length) list = el("p", { class: "muted" }, t("catEmpty"));
+  else list = el("ul", { class: "w-list" }, ...ranked.map((x) => {
+    const logo = safeUrl(x.image);
+    const open = el("button", { type: "button", class: "w-coin", "aria-label": t("catOpenAria", x.name) },
+      el("span", { class: "c-rank muted mono" }, x.c.rank ? "#" + x.c.rank : "–"),
+      logo ? el("img", { src: logo, alt: "", width: 24, height: 24, loading: "lazy" }) : el("span", { class: "mono-badge sm" }, x.symbol.slice(0, 3)),
+      el("span", { class: "w-name" }, el("b", {}, x.name), el("small", { class: "muted mono" }, x.symbol)));
+    open.addEventListener("click", () => { $("catDrawer").close(); analyze(x.id); window.scrollTo({ top: $("result").offsetTop - 12, behavior: "smooth" }); });
+    return el("li", { class: "w-row c-row" + (current && current.id === x.id ? " on" : "") },
+      open,
+      el("span", { class: "w-price num" }, priceFmt(x.c.price)),
+      el("span", { class: "w-ch num" }, pctSpan(x.c.ch24)),
+      el("span", { class: "w-score" }, el("b", { class: "num", title: t("sortScore") }, "≈" + x.total.toFixed(1)), el("span", { class: "pill sm v-" + x.verdict[1] }, x.verdict[0])));
+  }));
+  const y = panel.querySelector(".drawer-body")?.scrollTop;
+  panel.replaceChildren(head, el("div", { class: "drawer-body" }, tabs, sort, list,
+    catRows && ranked.length ? el("p", { class: "muted", style: "margin:12px 0 0;font-size:.78rem" }, t("quickScoreNote")) : null));
+  if (y && catRows) panel.querySelector(".drawer-body").scrollTop = y;
+}
+
 /* ---------- profile quiz ---------- */
 let quizAnswers = [];
 let quizShowResult = false;
@@ -515,7 +579,7 @@ function applyLang(lang, save) {
   if (save) store.set("cs-lang", getLang());
   applyStatic();
   $("profNote").textContent = E.PROFILES[profile()].blurb;
-  renderWeights(); renderMethod();
+  renderWeights(); renderMethod(); renderCatsNav();
   if ($("quiz").open) { const y = $("quiz").querySelector(".quiz-body")?.scrollTop; renderQuiz(); const b = $("quiz").querySelector(".quiz-body"); if (b && y) b.scrollTop = y; }
   if (current) { render(); writeUrl(); }
   if (lastError) { const [h, b] = errorCopy(lastError); notice(lastError instanceof ApiError && lastError.kind === "rate_limit" ? "warn" : "bad", h, b); status("error", t(current ? "showingLast" : "noData")); }
@@ -552,6 +616,8 @@ function init() {
   if (url.weights) { customWeights = url.weights; $("weightsPanel").open = true; }
   renderWeights();
   $("go").addEventListener("click", () => analyze());
+  renderCatsNav();
+  $("catDrawer").addEventListener("click", (e) => { if (e.target === $("catDrawer")) $("catDrawer").close(); });
   $("watchOpen").addEventListener("click", () => { renderWatch(); $("watchDrawer").showModal(); });
   $("watchDrawer").addEventListener("click", (e) => { if (e.target === $("watchDrawer")) $("watchDrawer").close(); });
   $("quizBtn").addEventListener("click", () => { renderQuiz(); $("quiz").showModal(); });

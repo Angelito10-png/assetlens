@@ -156,6 +156,18 @@ const en = {
   watchCount: (n) => `${n} coin${n === 1 ? "" : "s"}`,
   watchEmpty: "No coins yet. Press ☆ Watch next to a coin's name to add it here.",
 
+  // ---- categories ----
+  categories: "Categories",
+  catNavAria: "Browse coins by category",
+  cat_layer1: "Layer 1", cat_layer2: "Layer 2", cat_defi: "DeFi", cat_rwa: "RWA", cat_ai: "AI", cat_meme: "Meme", cat_gaming: "Gaming", cat_depin: "DePIN", cat_oracle: "Oracles", cat_privacy: "Privacy", cat_stable: "Stablecoins",
+  catTitle: (name) => `${name} coins`,
+  catSub: (n, who) => `Top ${n} by market cap · quick score for ${who}`,
+  sortBy: "Sort by", sortMcap: "Market cap", sortScore: "Quick score",
+  quickScoreNote: "Quick score uses market data only (size, tokenomics, momentum, stability, track record). Open a coin for the full score with development activity and community.",
+  catEmpty: "No coins found in this category.",
+  catOpenAria: (name) => `Open the analysis of ${name}`,
+  n_marketOnly: "Not loaded in the quick score.",
+
   methodIntro: "Each of seven factors gets a 0 to 10 sub-score from live data using fixed thresholds. Your profile sets how much each factor counts. The weighted average is mapped onto 1 to 10. Factors with no data are skipped and their weight is shared among the rest; the coverage figure shows how much of the weight had data.",
   profileWeights: "Profile weights",
   thresholds: "Thresholds.",
@@ -405,6 +417,18 @@ const el = {
   col_coin: "Νόμισμα", col_price: "Τιμή", col_24h: "24ω",
   watchCount: (n) => `${n} ${n === 1 ? "νόμισμα" : "νομίσματα"}`,
   watchEmpty: "Δεν έχεις ακόμα νομίσματα. Πάτησε «☆ Παρακολούθηση» δίπλα στο όνομα ενός νομίσματος για να το προσθέσεις εδώ.",
+
+  // ---- categories ----
+  categories: "Κατηγορίες",
+  catNavAria: "Νομίσματα ανά κατηγορία",
+  cat_layer1: "Layer 1", cat_layer2: "Layer 2", cat_defi: "DeFi", cat_rwa: "RWA", cat_ai: "AI", cat_meme: "Meme", cat_gaming: "Gaming", cat_depin: "DePIN", cat_oracle: "Oracles", cat_privacy: "Privacy", cat_stable: "Stablecoins",
+  catTitle: (name) => `Νομίσματα ${name}`,
+  catSub: (n, who) => `Τα ${n} μεγαλύτερα σε κεφαλαιοποίηση · γρήγορο σκορ για ${who}`,
+  sortBy: "Ταξινόμηση", sortMcap: "Κεφαλαιοποίηση", sortScore: "Γρήγορο σκορ",
+  quickScoreNote: "Το γρήγορο σκορ χρησιμοποιεί μόνο δεδομένα αγοράς (μέγεθος, tokenomics, δυναμική, σταθερότητα, ιστορικό). Άνοιξε ένα νόμισμα για το πλήρες σκορ με δραστηριότητα ανάπτυξης και κοινότητα.",
+  catEmpty: "Δεν βρέθηκαν νομίσματα σε αυτή την κατηγορία.",
+  catOpenAria: (name) => `Άνοιξε την ανάλυση του ${name}`,
+  n_marketOnly: "Δεν φορτώνεται στο γρήγορο σκορ.",
 
   methodIntro: "Καθένας από τους επτά παράγοντες παίρνει σκορ 0 έως 10 από ζωντανά δεδομένα, με σταθερά όρια. Το προφίλ σου ορίζει πόσο μετρά κάθε παράγοντας. Ο σταθμισμένος μέσος μετατρέπεται σε κλίμακα 1 έως 10. Παράγοντες χωρίς δεδομένα παραλείπονται και το βάρος τους μοιράζεται στους υπόλοιπους· η κάλυψη δεδομένων δείχνει πόσο από το βάρος είχε δεδομένα.",
   profileWeights: "Βάρη ανά προφίλ",

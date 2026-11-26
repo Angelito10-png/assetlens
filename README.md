@@ -22,7 +22,8 @@ Score any cryptocurrency from 1 to 10 for **your** investor profile (aggressive,
 10. **Light and dark themes**, following your system setting or chosen by hand.
 11. **Profile quiz.** Not sure which profile fits you? Five questions (reaction to a 40% drop, time horizon, goal, preferred kind of coin, how you manage a position) pick one, show how your answers split, and apply it in one click.
 12. **Watchlist.** Star any coin to keep it in a list saved in your browser. The star at the top right opens the list in a side panel, which shows each coin's price, daily change and score for your current profile (or custom weights), best first, and refreshes all prices with a single API call.
-13. **Latest news** for the selected coin: recent headlines from CryptoPanic and major crypto news sites, refreshed every 3 hours.
+13. **Categories menu.** Layer 1, Layer 2, DeFi, RWA, AI, Meme, Gaming, DePIN, Oracles, Privacy and Stablecoins. Each opens the top 50 coins of that CoinGecko category with price, daily change and a quick score for your profile (market data only, one API call per category), sortable by market cap or score. Click a coin for its full analysis.
+14. **Latest news** for the selected coin: recent headlines from CryptoPanic and major crypto news sites, refreshed every 3 hours.
 
 Results are shareable: the URL carries the coin, profile, custom weights and compared coins, for example `?coin=ethereum&profile=defensive&vs=solana,chainlink&lang=el`.
 
@@ -56,6 +57,7 @@ index.html          page shell
 styles.css          design tokens (light and dark themes) and layout
 src/engine.js       scoring engine: pure functions, no DOM or network
 src/watchlist.js    watchlist stored in localStorage: snapshots, price refresh, pure functions
+src/categories.js   category menu (CoinGecko category ids) and ranking with the quick score
 src/quiz.js         investor-profile quiz: questions and scoring, pure functions
 src/i18n.js         English and Greek dictionaries, t() lookup
 src/api.js          CoinGecko and GitHub clients with sessionStorage caching and rate-limit handling
@@ -71,7 +73,7 @@ tests/              unit tests for the engine, a regression test on real capture
 ## Run it locally
 
 ```bash
-npm test     # 30 unit tests, Node 20+
+npm test     # 33 unit tests, Node 20+
 npm start    # serves the site at http://localhost:3000
 ```
 

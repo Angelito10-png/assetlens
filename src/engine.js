@@ -127,6 +127,7 @@ const FACTORS = [
   }),
   factor("development", (c) => {
     const has = c.commits4w !== null || c.stars !== null || c.contributors !== null;
+    if (c.marketOnly) return { score: null, notes: [t("n_marketOnly")], inputs: [], missing: true };
     if (!c.repos.length && !c.devProvided) return { score: 0, notes: [t("n_noRepo")], inputs: [[t("i_repos"), "0"]] };
     if (!c.devProvided) return { score: null, notes: [t("n_ghFailed", c.repos.length)], inputs: [[t("i_repos"), String(c.repos.length)]], missing: true };
     if (!has || (c.commits4w === 0 && !c.stars && !c.contributors)) {
@@ -202,12 +203,22 @@ function score(c, profileKey, customWeights) {
   let total = 1 + raw * 0.9; // map 0-10 onto 1-10
   const caps = [];
   if (profileKey === "defensive" && c.rank && c.rank > 100) { if (total > 5) caps.push(t("cap_defensive", c.rank)); total = Math.min(total, 5); }
-  const noCode = (!c.repos.length && !c.devProvided) || (c.devProvided && c.commits4w === 0 && !c.stars);
+  const noCode = (!c.marketOnly && !c.repos.length && !c.devProvided) || (c.devProvided && c.commits4w === 0 && !c.stars);
   if (profileKey === "longterm" && noCode) { if (total > 6) caps.push(t("cap_longterm")); total = Math.min(total, 6); }
   total = Math.round(total * 10) / 10;
   const missing = factors.filter((f) => f.score === null && f.weight > 0).map((f) => f.name);
   const coverage = factors.filter((f) => f.weight > 0).length ? Math.round((used.length / factors.filter((f) => f.weight > 0).length) * 100) : 0;
   return { total, raw, factors, caps, missing, coverage, flags: flags(c), profile: p, profileKey };
+}
+
+/**
+ * Quick score from a /coins/markets row alone (used for category lists, where
+ * loading every coin's full data would hit the free API limits). Development and
+ * community are unknown here, so they are skipped rather than counted as zero.
+ */
+function quickScore(row, profileKey, customWeights) {
+  const c = { ...normalize(null, row, null), marketOnly: true };
+  return { c, ...score(c, profileKey, customWeights) };
 }
 
 /** Keep only known factor keys with finite, non-negative numbers. */
@@ -248,4 +259,4 @@ function recommend(c, r) {
   return out;
 }
 
-export { normalize, score, sanitizeWeights, encodeWeights, decodeWeights, recommend, verdict, flags, FACTORS, PROFILES, fmtBig, fmtPct, fmtNum, lin, clamp };
+export { normalize, score, quickScore, sanitizeWeights, encodeWeights, decodeWeights, recommend, verdict, flags, FACTORS, PROFILES, fmtBig, fmtPct, fmtNum, lin, clamp };
