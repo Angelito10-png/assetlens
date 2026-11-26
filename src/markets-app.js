@@ -5,7 +5,7 @@
  */
 import * as M from "./markets-engine.js?v=__V__";
 import { t, getLang } from "./i18n.js?v=__V__";
-import { STOCKS, ETFS, SECTORS, ETF_CATEGORIES, ETF_FACTS_AS_OF, stockByTicker, etfByTicker } from "./universe.js?v=__V__";
+import { STOCKS, ETFS, SECTORS, ETF_CATEGORIES, ETF_FACTS_AS_OF, COMMODITY_SUBS, stockByTicker, etfByTicker, isCommodity } from "./universe.js?v=__V__";
 import { loadSnapshot, weeklyBars, cachedBars, getKey, setKey, callsToday, FREE_DAILY_CALLS, PriceError } from "./markets-api.js?v=__V__";
 import { priceStats } from "./prices.js?v=__V__";
 import { fmtBig, fmtPct } from "./engine.js?v=__V__";
@@ -13,7 +13,7 @@ import { QUESTIONS, PROFILE_KEYS, quizResult } from "./quiz.js?v=__V__";
 import { mountRails, loadMarket, refreshFunds, renderMarket, renderGlance, pickSimilar, topRisks } from "./sidebar.js?v=__V__";
 import { $, el, store, safeUrl, locale, priceFmt, barClass, ago, initChrome, applyStatic, dial, radar, backdropClose, closeBtn } from "./ui.js?v=__V__";
 
-const QUICK = ["AAPL", "MSFT", "NVDA", "KO", "JPM", "VOO", "QQQ", "SCHD"];
+const QUICK = ["AAPL", "MSFT", "NVDA", "KO", "JPM", "VOO", "QQQ", "SCHD", "GLD", "SLV"];
 const MAX_COMPARE = 2, WATCH_KEY = "ms-watchlist", WATCH_MAX = 30;
 let snap = null;
 let current = null; // { t, kind, c, px: {status, source, at} }
@@ -21,7 +21,9 @@ let compare = []; // [{ t, c }]
 let customWeights = null; // per current kind
 let spyBars = null;
 const profile = () => document.querySelector('input[name="profile"]:checked').value;
-const kindOf = (tk) => (stockByTicker(tk) ? "stock" : etfByTicker(tk) ? "etf" : null);
+const kindOf = (tk) => (stockByTicker(tk) ? "stock" : isCommodity(tk) ? "commodity" : etfByTicker(tk) ? "etf" : null);
+/** Text keys that differ by kind: base + "Stock" | "Etf" | "Cmd". */
+const kk = (base, kind) => base + ({ stock: "Stock", etf: "Etf", commodity: "Cmd" }[kind] || "Etf");
 const nameOf = (tk) => (stockByTicker(tk) || [])[1] || (etfByTicker(tk) || {}).name || tk;
 
 /* ---------- assets ---------- */
@@ -147,7 +149,7 @@ function renderWeights() {
   reset.disabled = !customWeights;
   reset.addEventListener("click", () => { customWeights = null; renderWeights(); render(); writeUrl(); });
   $("weightsBody").replaceChildren(
-    el("p", { class: "muted", style: "margin:0;font-size:.85rem" }, t("weightsHelp"), " ", t(current && current.kind === "etf" ? "m_weightsEtf" : "m_weightsStock")),
+    el("p", { class: "muted", style: "margin:0;font-size:.85rem" }, t("weightsHelp"), " ", t(kk("m_weights", current ? current.kind : "stock"))),
     el("div", { class: "wgrid" }, ...rows),
     el("div", { class: "wfoot" }, reset, el("span", { class: "muted", id: "wState", style: "font-size:.82rem" }, customWeights ? t("usingCustom") : t("usingProfile", P.label))),
   );
@@ -163,10 +165,12 @@ function renderWeightsValues() {
 /* ---------- rendering ---------- */
 const pctSpan = (v) => el("span", { class: v === null ? "" : v >= 0 ? "pos" : "neg" }, fmtPct(v));
 const fx = (v, d, suf = "") => (v === null || v === undefined ? "n/a" : v.toFixed(d) + suf);
-const groupLabel = (c) => (c.kind === "stock" ? t("sector_" + c.sector) : t("etfcat_" + c.cat));
+const groupLabel = (c) => (c.kind === "stock" ? t("sector_" + c.sector) : c.kind === "commodity" ? t("msub_" + c.sub) : t("etfcat_" + c.cat));
 
 function metrics(c) {
-  const M_ = c.kind === "stock"
+  const M_ = c.kind === "commodity"
+    ? [[t("mm_price"), priceFmt(c.price)], [t("mi_commodity"), c.metal ? t("mcm_" + c.metal) : "n/a"], [t("mi_form"), c.form ? t("mform_" + c.form) : "n/a"], [t("mi_er"), c.er === null ? "n/a" : c.er.toFixed(2) + "%"], [t("mi_aum"), fmtBig(c.aum)], [t("mi_6m"), pctSpan(c.r6m)], [t("mi_1y"), pctSpan(c.r1y)], [t("mi_vol"), fx(c.vol, 0, "%")], [t("mm_fromHigh"), pctSpan(c.fromHigh)]]
+    : c.kind === "stock"
     ? [[t("mm_price"), priceFmt(c.price)], [t("mi_pe"), c.pe ? c.pe.toFixed(1) : c.eps !== null && c.eps <= 0 ? t("mi_neg") : "n/a"], [t("mi_mcap"), fmtBig(c.mcap)], [t("mi_yield"), fx(c.yield, 2, "%")], [t("mi_1y"), pctSpan(c.r1y)], [t("mi_vol"), fx(c.vol, 0, "%")], [t("mm_fromHigh"), pctSpan(c.fromHigh)], [t("mi_revenue"), fmtBig(c.revenue)], [t("mi_netMargin"), fx(c.netMargin, 1, "%")]]
     : [[t("mm_price"), priceFmt(c.price)], [t("mi_er"), c.er === null ? "n/a" : c.er.toFixed(c.er < 0.1 ? 3 : 2) + "%"], [t("mi_aum"), fmtBig(c.aum)], [t("mi_holdings"), c.holdings === null ? "n/a" : c.holdings.toLocaleString("en-US")], [t("mi_yield"), fx(c.yield, 2, "%")], [t("mi_1y"), pctSpan(c.r1y)], [t("mi_cagr5"), pctSpan(c.cagr5y)], [t("mi_vol"), fx(c.vol, 0, "%")], [t("mm_fromHigh"), pctSpan(c.fromHigh)]];
   return el("div", { class: "metrics" }, ...M_.map(([k, v]) => el("div", { class: "metric" }, el("span", { class: "k" }, k), el("span", { class: "v" }, v))));
@@ -183,7 +187,7 @@ function render() {
   const all = PROFILE_KEYS.map((k) => [k, M.score(c, k).total, P[k].label]);
   if (customWeights) all.push(["custom", r.total, t("profile_custom")]);
   const card = el("div", { class: "panel scorecard" },
-    el("div", { class: "coin-id" }, el("div", { class: "mono-badge" }, c.t.slice(0, 4)), el("div", { style: "text-align:left" }, el("h2", {}, c.name), el("div", { class: "muted mono", style: "font-size:.8rem" }, `${c.t} · ${t(c.kind === "stock" ? "m_kind_stock" : "m_kind_etf")} · ${groupLabel(c)}`))),
+    el("div", { class: "coin-id" }, el("div", { class: "mono-badge" }, c.t.slice(0, 4)), el("div", { style: "text-align:left" }, el("h2", {}, c.name), el("div", { class: "muted mono", style: "font-size:.8rem" }, `${c.t} · ${t("m_kind_" + c.kind)} · ${groupLabel(c)}`))),
     watchButton(c),
     dial(r.total, vKey),
     el("span", { class: "pill v-" + vKey }, t("fitFor", vText, who)),
@@ -222,7 +226,7 @@ function render() {
       el("section", { class: "panel" }, el("h2", { style: "margin-bottom:14px" }, t("recsFor", t("whoProfile", r.profile.label))), el("ul", { class: "recs" }, ...recs.map(([h, txt]) => el("li", {}, el("b", {}, h), el("span", {}, txt))))),
       el("section", { class: "panel" }, el("h2", { style: "margin-bottom:10px" }, t("beforeAct")),
         el("ul", { class: "recs" },
-          el("li", {}, el("b", {}, t("notCovered")), el("span", {}, t(c.kind === "stock" ? "m_notCoveredStock" : "m_notCoveredEtf"))),
+          el("li", {}, el("b", {}, t("notCovered")), el("span", {}, t(kk("m_notCovered", c.kind)))),
           el("li", {}, el("b", {}, t("sources")), el("span", {}, ...srcLinks)),
           el("li", {}, el("b", {}, t("m_dataDates")), el("span", {}, t("m_dataDatesBody", c.kind === "stock" ? c.periodEnd : null, c.asOf, snap ? new Date(snap.updated).toLocaleDateString(locale()) : null))),
         )),
@@ -269,13 +273,13 @@ function comparePanel(r) {
     const top = best && scored.length > 1 && nums.length > 1 ? Math.max(...nums) : null;
     return el("tr", { class: strong ? "strong" : "" }, el("th", { scope: "row" }, label), ...vals.map((v) => el("td", { class: "num" + (top !== null && v === top ? " best" : "") }, fmt(v ?? null))));
   });
-  const input = el("input", { type: "text", id: "cmpCoin", list: kind === "stock" ? "stockList" : "etfList", placeholder: t(kind === "stock" ? "m_addStock" : "m_addEtf"), autocomplete: "off" });
+  const input = el("input", { type: "text", id: "cmpCoin", list: kind === "stock" ? "stockList" : kind === "commodity" ? "cmdList" : "etfList", placeholder: t(kk("m_add", kind)), autocomplete: "off" });
   const add = el("button", { type: "button", class: "ghost" }, t("add"));
-  const msg = el("p", { class: "muted", id: "cmpMsg", style: "margin:0 0 8px;font-size:.8rem;min-height:1.2em", "aria-live": "polite" }, compare.length ? "" : t(kind === "stock" ? "m_compareHintStock" : "m_compareHintEtf"));
+  const msg = el("p", { class: "muted", id: "cmpMsg", style: "margin:0 0 8px;font-size:.8rem;min-height:1.2em", "aria-live": "polite" }, compare.length ? "" : t(kk("m_compareHint", kind)));
   const go = async () => {
     const tk = resolve(input.value);
     if (!tk) { msg.textContent = t("m_notFound"); return; }
-    if (kindOf(tk) !== kind) { msg.textContent = t("m_compareKind"); return; }
+    if (kindOf(tk) !== kind) { msg.textContent = t("m_compareKind3"); return; }
     if (tk === current.t || compare.some((x) => x.t === tk)) { msg.textContent = t("m_alreadyIn"); return; }
     msg.textContent = t("loading");
     const px = await loadPrices(tk);
@@ -286,7 +290,7 @@ function comparePanel(r) {
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
   if (compare.length >= MAX_COMPARE) { input.disabled = true; add.disabled = true; input.placeholder = t("m_upTo3"); }
   return el("section", { class: "panel" },
-    el("div", { class: "section-head" }, el("h2", {}, t(kind === "stock" ? "m_compareStocks" : "m_compareEtfs")), el("span", { class: "muted", style: "font-size:.82rem" }, customWeights ? t("scoredCustom") : t("scoredFor", M.KINDS[kind].profiles[pk].label))),
+    el("div", { class: "section-head" }, el("h2", {}, t({ stock: "m_compareStocks", etf: "m_compareEtfs", commodity: "m_compareCmd" }[kind])), el("span", { class: "muted", style: "font-size:.82rem" }, customWeights ? t("scoredCustom") : t("scoredFor", M.KINDS[kind].profiles[pk].label))),
     el("div", { class: "cmp-add" }, input, add), msg,
     el("div", { class: "ctable-wrap" }, el("table", { class: "ctable" }, el("thead", {}, head), el("tbody", {}, ...body))),
     scored.length > 1 ? el("p", { class: "muted", style: "margin:8px 0 0;font-size:.78rem" }, t("boldBest")) : null);
@@ -326,6 +330,8 @@ function renderMethod() {
     el("p", {}, t("m_methodIntro")),
     el("div", {}, el("h3", { style: "margin-bottom:6px" }, t("m_weightsStockTitle")), el("div", { class: "wtable-wrap" }, table("stock"))),
     el("div", {}, el("h3", { style: "margin-bottom:6px" }, t("m_weightsEtfTitle")), el("div", { class: "wtable-wrap" }, table("etf"))),
+    el("div", {}, el("h3", { style: "margin-bottom:6px" }, t("m_weightsCmdTitle")), el("div", { class: "wtable-wrap" }, table("commodity"))),
+    el("p", {}, t("m_cmdMethod")),
     el("p", {}, el("b", {}, t("thresholds") + " "), t("m_thresholdsBody")),
     el("p", {}, el("b", {}, t("profileRules") + " "), t("m_rulesBody")),
     el("p", {}, el("b", {}, t("m_dataTitle") + " "), t("m_dataBody")),
@@ -372,16 +378,17 @@ function renderWatch() {
 
 /* ---------- sector & fund-type menu ---------- */
 let menuKey = null, menuSort = "score";
-const MENU = [...SECTORS.map((s) => ({ key: "s:" + s, label: () => t("sector_" + s), list: () => STOCKS.filter((x) => x[2] === s).map((x) => x[0]) })),
-  ...ETF_CATEGORIES.map((g) => ({ key: "e:" + g, label: () => t("etfcat_" + g), list: () => ETFS.filter((e) => e.cat === g).map((e) => e.t), etf: true }))];
+const MENU = [...SECTORS.map((s) => ({ key: "s:" + s, group: "s", label: () => t("sector_" + s), list: () => STOCKS.filter((x) => x[2] === s).map((x) => x[0]) })),
+  ...ETF_CATEGORIES.filter((g) => g !== "commodity").map((g) => ({ key: "e:" + g, group: "e", label: () => t("etfcat_" + g), list: () => ETFS.filter((e) => e.cat === g).map((e) => e.t) })),
+  ...COMMODITY_SUBS.map((g) => ({ key: "c:" + g, group: "c", label: () => t("msub_" + g), list: () => ETFS.filter((e) => e.cat === "commodity" && e.sub === g).map((e) => e.t) }))];
 function renderMenuNav() {
   const chip = (m) => { const b = el("button", { type: "button", class: "chip", "aria-haspopup": "dialog" }, m.label()); b.addEventListener("click", () => { menuKey = m.key; renderMenu(); $("catDrawer").showModal(); }); return b; };
-  $("catsNav").replaceChildren(el("span", { class: "cats-label" }, t("m_sectors")), ...MENU.filter((m) => !m.etf).map(chip), el("span", { class: "cats-label" }, t("m_etfs")), ...MENU.filter((m) => m.etf).map(chip));
+  $("catsNav").replaceChildren(el("span", { class: "cats-label" }, t("m_sectors")), ...MENU.filter((m) => m.group === "s").map(chip), el("span", { class: "cats-label" }, t("m_etfs")), ...MENU.filter((m) => m.group === "e").map(chip), el("span", { class: "cats-label" }, t("m_commodities")), ...MENU.filter((m) => m.group === "c").map(chip));
 }
 function renderMenu() {
   const m = MENU.find((x) => x.key === menuKey);
   if (!m) return;
-  const tabs = el("div", { class: "cat-tabs", role: "group", "aria-label": t("m_sectors") }, ...MENU.filter((x) => !!x.etf === !!m.etf).map((x) => { const b = el("button", { type: "button", class: "chip", "aria-pressed": String(x.key === menuKey) }, x.label()); b.addEventListener("click", () => { menuKey = x.key; renderMenu(); }); return b; }));
+  const tabs = el("div", { class: "cat-tabs", role: "group", "aria-label": t("m_sectors") }, ...MENU.filter((x) => x.group === m.group).map((x) => { const b = el("button", { type: "button", class: "chip", "aria-pressed": String(x.key === menuKey) }, x.label()); b.addEventListener("click", () => { menuKey = x.key; renderMenu(); }); return b; }));
   const sort = el("div", { class: "cat-sort" }, el("span", { class: "muted" }, t("sortBy")), el("div", { class: "tgl" }, ...[["score", t("sortScore")], ["name", t("m_sortName")]].map(([k, label]) => { const b = el("button", { type: "button", "aria-pressed": String(menuSort === k) }, label); b.addEventListener("click", () => { menuSort = k; renderMenu(); }); return b; })));
   const rows = m.list().map((tk) => assetRow(tk, () => { $("catDrawer").close(); analyze(tk); window.scrollTo({ top: $("result").offsetTop - 12, behavior: "smooth" }); }));
   rows.sort(menuSort === "score" ? (a, b) => b.r.total - a.r.total : () => 0);
@@ -395,7 +402,9 @@ function renderMenu() {
 
 /* ---------- side column: at a glance + better-scoring assets in the same sector or category ---------- */
 function glance(c, r, vText, vKey, who, pk) {
-  const peers = c.kind === "stock" ? STOCKS.filter((s) => s[2] === c.sector).map((s) => s[0]) : ETFS.filter((e) => e.cat === c.cat).map((e) => e.t);
+  const peers = c.kind === "stock" ? STOCKS.filter((s) => s[2] === c.sector).map((s) => s[0])
+    : c.kind === "commodity" ? ETFS.filter((e) => e.cat === "commodity" && e.sub === c.sub).map((e) => e.t)
+    : ETFS.filter((e) => e.cat === c.cat).map((e) => e.t);
   const scored = peers.map((tk) => { const a = tk === c.t ? c : assetWith(tk); return a ? { id: tk, score: M.score(a, pk, customWeights).total, label: tk, sub: a.name, onOpen: () => { analyze(tk); window.scrollTo({ top: 0, behavior: "smooth" }); } } : null; });
   renderGlance({
     title: c.t, sub: c.name, score: r.total, vKey, verdictText: t("fitFor", vText, who),
@@ -453,7 +462,7 @@ async function init() {
   if (startProfile && M.KINDS.stock.profiles[startProfile]) $("p-" + startProfile).checked = true;
   $("profNote").textContent = M.KINDS.stock.profiles[profile()].blurb;
   $("coinlist").replaceChildren(...[...STOCKS.map(([tk, n]) => `${tk} · ${n}`), ...ETFS.map((e) => `${e.t} · ${e.name}`)].map((v) => el("option", { value: v })));
-  document.body.append(el("datalist", { id: "stockList" }, ...STOCKS.map(([tk, n]) => el("option", { value: `${tk} · ${n}` }))), el("datalist", { id: "etfList" }, ...ETFS.map((e) => el("option", { value: `${e.t} · ${e.name}` }))));
+  document.body.append(el("datalist", { id: "stockList" }, ...STOCKS.map(([tk, n]) => el("option", { value: `${tk} · ${n}` }))), el("datalist", { id: "etfList" }, ...ETFS.filter((e) => e.cat !== "commodity").map((e) => el("option", { value: `${e.t} · ${e.name}` }))), el("datalist", { id: "cmdList" }, ...ETFS.filter((e) => e.cat === "commodity").map((e) => el("option", { value: `${e.t} · ${e.name}` }))));
   QUICK.forEach((tk) => { const b = el("button", { type: "button" }, tk); b.addEventListener("click", () => analyze(tk)); $("quick").append(b); });
   document.querySelectorAll('input[name="profile"]').forEach((r) => r.addEventListener("change", () => { store.set("cs-profile", profile()); $("profNote").textContent = M.KINDS.stock.profiles[profile()].blurb; customWeights = null; renderWeights(); render(); writeUrl(); }));
   $("go").addEventListener("click", () => analyze());
@@ -469,7 +478,7 @@ async function init() {
   const keepW = customWeights;
   await analyze(first);
   openKey();
-  refreshFunds(); // SPY is in the cache by now, so at most one call (QQQ)
+  refreshFunds(); // SPY is in the cache by now, so at most two calls (QQQ, GLD), then cached for 20 hours
   if (keepW) { customWeights = keepW; renderWeights(); render(); }
   for (const tk of url.vs) if (kindOf(tk) === current.kind && tk !== current.t) { const px = await loadPrices(tk); compare.push({ t: tk, c: assetWith(tk, px.bars) }); }
   if (compare.length) { render(); writeUrl(); }

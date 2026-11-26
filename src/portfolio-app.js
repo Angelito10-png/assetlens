@@ -7,7 +7,7 @@ import * as M from "./markets-engine.js?v=__V__";
 import * as C from "./engine.js?v=__V__";
 import { analyze, encodeHoldings, decodeHoldings, LIMITS, exposures } from "./analyst.js?v=__V__";
 import { t, getLang } from "./i18n.js?v=__V__";
-import { STOCKS, ETFS, stockByTicker, etfByTicker, SECTORS } from "./universe.js?v=__V__";
+import { STOCKS, ETFS, stockByTicker, etfByTicker, SECTORS, isCommodity } from "./universe.js?v=__V__";
 import { loadSnapshot, weeklyBars, getKey, setKey, callsToday, FREE_DAILY_CALLS, PriceError } from "./markets-api.js?v=__V__";
 import { topCoins, marketsFor, coinChart } from "./api.js?v=__V__";
 import { priceStats, weeklySeries } from "./prices.js?v=__V__";
@@ -18,7 +18,7 @@ import { mountRails, loadMarket, refreshFunds, renderMarket, renderGlance } from
 const STORE = "pf-holdings";
 const PROFILES = ["aggressive", "defensive", "longterm"];
 const EXAMPLES = {
-  balanced: [["etf", "VTI", 30000], ["etf", "VXUS", 12000], ["etf", "BND", 15000], ["stock", "MSFT", 4000], ["stock", "JNJ", 3000], ["crypto", "bitcoin", 2000]],
+  balanced: [["etf", "VTI", 30000], ["etf", "VXUS", 12000], ["etf", "BND", 15000], ["etf", "GLDM", 4000], ["stock", "MSFT", 4000], ["stock", "JNJ", 3000], ["crypto", "bitcoin", 2000]],
   tech: [["stock", "NVDA", 12000], ["stock", "AAPL", 8000], ["stock", "MSFT", 7000], ["etf", "QQQ", 10000], ["stock", "TSLA", 5000], ["etf", "ARKK", 3000]],
   crypto: [["crypto", "bitcoin", 9000], ["crypto", "ethereum", 6000], ["crypto", "solana", 4000], ["crypto", "dogecoin", 2000], ["etf", "VOO", 4000], ["stock", "PLTR", 2000]],
 };
@@ -84,7 +84,7 @@ function renderTable() {
     const s = scores[h.kind + ":" + h.id];
     const sc = s && typeof s.scores[profile()] === "number" ? s.scores[profile()] : null;
     return el("tr", {},
-      el("th", { scope: "row" }, el("span", { class: "pf-name" }, label(h)), el("small", { class: "muted" }, t("p_kind_" + h.kind))),
+      el("th", { scope: "row" }, el("span", { class: "pf-name" }, label(h)), el("small", { class: "muted" }, t(h.kind === "etf" && isCommodity(h.id) ? "m_kind_commodity" : "p_kind_" + h.kind))),
       el("td", { class: "num" }, input),
       el("td", { class: "num" }, total ? ((h.value / total) * 100).toFixed(1) + "%" : "–"),
       el("td", { class: "num" }, sc === null ? "–" : el("b", {}, (s.partial ? "≈" : "") + sc.toFixed(1))),
@@ -104,9 +104,9 @@ async function stockOrEtf(h) {
   let bars = null, pxErr = null;
   try { bars = (await weeklyBars(h.id)).bars; } catch (e) { pxErr = e instanceof PriceError ? e.kind : "network"; }
   const bench = bars ? await loadSpy() : null;
-  const c = M.normalizeAsset({ ...entry, px: bars ? priceStats(bars, h.id === "SPY" ? null : bench) : null }, kind);
+  const c = M.normalizeAsset({ ...entry, px: bars ? priceStats(bars, h.id === "SPY" ? null : bench) : null }, kind === "etf" && isCommodity(h.id) ? "commodity" : kind);
   const scores = Object.fromEntries(PROFILES.map((k) => [k, M.score(c, k).total]));
-  return { ...h, name: c.name, symbol: h.id, scores, partial: M.score(c, profile()).coverage < 100, sector: c.sector, cat: c.cat, er: c.er, yield: c.yield, vol: c.vol, series: bars ? weeklySeries(bars) : null, assetClass: c.assetClass, top: c.top, sectorMix: c.sectorMix, holdings: c.holdings, pxErr };
+  return { ...h, name: c.name, symbol: h.id, scores, partial: M.score(c, profile()).coverage < 100, sector: c.sector, cat: c.cat, er: c.er, yield: c.yield, vol: c.vol, series: bars ? weeklySeries(bars) : null, assetClass: c.assetClass, top: c.top, sectorMix: c.sectorMix, holdings: c.holdings, metal: c.metal || null, pxErr };
 }
 
 /** Daily CoinGecko prices → Friday closes, so crypto lines up with the weekly stock data. */
@@ -157,7 +157,7 @@ async function run() {
 function status(s, text) { $("status").dataset.s = s; $("statusText").textContent = text; }
 
 /* ---------- the analyst's report ---------- */
-const CLASS_COLORS = { equity: "var(--s1)", bonds: "var(--s3)", gold: "var(--mid)", crypto: "var(--s2)" };
+const CLASS_COLORS = { equity: "var(--s1)", bonds: "var(--s3)", gold: "var(--mid)", commodity: "var(--muted)", crypto: "var(--s2)" };
 function renderResult() {
   if (!lastResult) { $("result").replaceChildren(); renderGlance(null); return; }
   const pk = profile();

@@ -8,7 +8,7 @@ import * as M from "../src/markets-engine.js?v=__V__";
 import { analyze, exposures, encodeHoldings, decodeHoldings, LIMITS } from "../src/analyst.js?v=__V__";
 import { MARKET_KEYS } from "../src/i18n-markets.js?v=__V__";
 import { LANGS } from "../src/i18n.js?v=__V__";
-import { STOCKS, ETFS, SECTORS, ETF_ASSET_CLASS, stockByTicker, etfByTicker } from "../src/universe.js?v=__V__";
+import { STOCKS, ETFS, SECTORS, ETF_ASSET_CLASS, etfAssetClass, stockByTicker, etfByTicker } from "../src/universe.js?v=__V__";
 
 const SEC = JSON.parse(readFileSync(new URL("./fixtures/sec-2026-11-26.json", import.meta.url)));
 
@@ -235,4 +235,40 @@ test("i18n: English and Greek have the same market keys and the same argument sh
   assert.deepEqual(Object.keys(en).sort(), Object.keys(el).sort());
   for (const k of Object.keys(en)) assert.equal(typeof en[k], typeof el[k], k);
   assert.equal(LANGS.en.nav_markets, en.nav_markets, "market keys are merged into the app dictionaries");
+});
+
+/* ---------------------------------------------------------------- commodities */
+
+const cmd = (t, px) => M.normalizeAsset({ t, name: etfByTicker(t).name, px }, "commodity");
+
+test("commodities: every fund has the facts its factors read, and weights sum to 100", () => {
+  const list = ETFS.filter((e) => e.cat === "commodity");
+  assert.ok(list.length >= 10);
+  for (const e of list) {
+    assert.ok(["physical", "futures"].includes(e.form), e.t);
+    assert.ok(e.hedge >= 0 && e.hedge <= 10 && e.metal && e.sub, e.t);
+    for (const k of M.PROFILE_KEYS) { const r = M.score(cmd(e.t), k); assert.ok(r.total >= 1 && r.total <= 10, `${e.t} ${k}`); }
+  }
+  for (const p of Object.values(M.KINDS.commodity.profiles)) assert.equal(Object.values(p.weights).reduce((a, b) => a + b, 0), 100);
+});
+
+test("commodities: cheap physical gold beats futures-based natural gas for every profile", () => {
+  for (const k of M.PROFILE_KEYS) assert.ok(M.score(cmd("GLDM"), k).total > M.score(cmd("UNG"), k).total + 2, k);
+  // long-term investors: futures-based funds are capped at 6
+  const r = M.score(cmd("DBC"), "longterm");
+  assert.ok(r.total <= 6);
+  assert.ok(M.flags(cmd("USO")).some(([, txt]) => /futures/i.test(txt)));
+});
+
+test("commodities: precious metals count as a cushion, other commodities have their own limit", () => {
+  const e = (t, value) => { const x = etfByTicker(t); return { kind: "etf", id: t, symbol: t, name: t, value, cat: x.cat, metal: x.metal, er: x.er, holdings: x.holdings, top: x.top, assetClass: etfAssetClass(x), scores: { aggressive: 6, defensive: 6, longterm: 6 } }; };
+  const ex = exposures([e("VTI", 70), e("GLD", 10), e("USO", 20)]);
+  assert.equal(ex.mix.gold, 10);
+  assert.equal(ex.mix.commodity, 20);
+  const a = analyze([e("VTI", 70), e("GLD", 10), e("USO", 20)], "defensive");
+  assert.ok(a.weaknesses.some((w) => w.key === "commodity"), JSON.stringify(a.weaknesses.map((w) => w.key)));
+  assert.ok(!a.weaknesses.some((w) => w.key === "single" && /GLD|USO/.test(w.text)), "commodity funds are not judged as single companies");
+  // the cheaper alternative for a gold fund is another gold fund
+  const b = analyze([e("VTI", 50), e("GLD", 50)], "longterm");
+  assert.ok(b.fixes.some((f) => f.key === "fee" && /GLDM/.test(f.text)), JSON.stringify(b.fixes));
 });

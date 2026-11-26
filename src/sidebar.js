@@ -73,7 +73,8 @@ export function mountRails() {
 
 /* ---------------------------------------------------------------- left: market overview */
 
-const state = { btc: undefined, global: undefined, fng: undefined, SPY: undefined, QQQ: undefined };
+const state = { btc: undefined, global: undefined, fng: undefined, SPY: undefined, QQQ: undefined, GLD: undefined };
+const FUNDS = ["SPY", "QQQ", "GLD"];
 
 const pct = (v) => (v === null || v === undefined ? null : el("span", { class: "num " + (v >= 0 ? "up" : "down") }, (v >= 0 ? "+" : "") + v.toFixed(2) + "%"));
 const big = (v) => (v >= 1e12 ? "$" + (v / 1e12).toFixed(2) + "T" : "$" + (v / 1e9).toFixed(0) + "B");
@@ -105,6 +106,7 @@ export function renderMarket() {
     el("ul", { class: "mk" },
       fundRow("SPY", t("sb_sp500")),
       fundRow("QQQ", t("sb_nasdaq")),
+      fundRow("GLD", t("sb_gold")),
       row(t("sb_btc"), state.btc === undefined ? undefined : state.btc ? priceFmt(state.btc.price) : null, state.btc ? pct(state.btc.ch24) : null, t("sb_24h")),
       row(t("sb_total"), state.global === undefined ? undefined : state.global ? big(state.global.total) : null, state.global ? pct(state.global.ch24) : null, state.global && state.global.btcDom !== null ? t("sb_btcDom", state.global.btcDom.toFixed(1)) : t("sb_24h"))),
     el("div", { class: "mk-fng" }, el("div", { class: "mk-l" }, el("span", {}, t("sb_fng"))), f ? gauge : el("span", { class: "muted" }, f === undefined ? "…" : "–")),
@@ -133,13 +135,13 @@ export async function loadMarket({ funds = true } = {}) {
 
 /** SPY and QQQ from the visitor's price cache, without spending calls. */
 function fundsFromCache() {
-  for (const tk of ["SPY", "QQQ"]) { const c = cachedBars(tk); state[tk] = c ? weekChange(c.bars) : getKey() ? undefined : "nokey"; }
+  for (const tk of FUNDS) { const c = cachedBars(tk); state[tk] = c ? weekChange(c.bars) : getKey() ? undefined : "nokey"; }
 }
 /** SPY and QQQ from the cache, or from Alpha Vantage when the visitor has a key (one call each, then cached). */
 export async function refreshFunds() {
   fundsFromCache();
   renderMarket();
-  await Promise.all(["SPY", "QQQ"].filter((tk) => state[tk] === undefined).map((tk) =>
+  await Promise.all(FUNDS.filter((tk) => state[tk] === undefined).map((tk) =>
     weeklyBars(tk).then((r) => { state[tk] = weekChange(r.bars); }).catch(() => { state[tk] = null; }).then(renderMarket)));
 }
 

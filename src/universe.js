@@ -76,14 +76,31 @@ export const ETFS = [
   { t: "AGG", name: "iShares Core U.S. Aggregate Bond ETF", cat: "bonds", issuer: "BlackRock", er: 0.03, holdings: 12500, top10: 4, aum: 125, since: 2003, top: [], sectors: null },
   { t: "TLT", name: "iShares 20+ Year Treasury Bond ETF", cat: "bonds", issuer: "BlackRock", er: 0.15, holdings: 40, top10: 40, aum: 50, since: 2002, top: [], sectors: null },
   { t: "VNQ", name: "Vanguard Real Estate ETF", cat: "realestate", issuer: "Vanguard", er: 0.13, holdings: 155, top10: 45, aum: 35, since: 2004, top: ["PLD", "AMT", "O", "SPG"], sectors: { realestate: 100 } },
-  { t: "GLD", name: "SPDR Gold Shares", cat: "commodity", issuer: "State Street", er: 0.40, holdings: 1, top10: 100, aum: 100, since: 2004, top: [], sectors: null },
-  { t: "IAU", name: "iShares Gold Trust", cat: "commodity", issuer: "BlackRock", er: 0.25, holdings: 1, top10: 100, aum: 45, since: 2005, top: [], sectors: null },
+  // Commodities, held through exchange-traded funds (scored as their own kind, see markets-engine.js).
+  // form: "physical" (vault-held metal) or "futures" (rolling futures contracts); k1: the fund sends US investors a K-1 tax form;
+  // hedge: 0-10, how well the commodity has historically diversified a stock portfolio and held up in inflation (rule of thumb, see README).
+  { t: "GLD", name: "SPDR Gold Shares", cat: "commodity", sub: "precious", metal: "gold", issuer: "State Street", er: 0.40, holdings: 1, top10: 100, aum: 100, since: 2004, form: "physical", k1: false, hedge: 9, top: [], sectors: null },
+  { t: "IAU", name: "iShares Gold Trust", cat: "commodity", sub: "precious", metal: "gold", issuer: "BlackRock", er: 0.25, holdings: 1, top10: 100, aum: 45, since: 2005, form: "physical", k1: false, hedge: 9, top: [], sectors: null },
+  { t: "GLDM", name: "SPDR Gold MiniShares", cat: "commodity", sub: "precious", metal: "gold", issuer: "State Street", er: 0.10, holdings: 1, top10: 100, aum: 15, since: 2018, form: "physical", k1: false, hedge: 9, top: [], sectors: null },
+  { t: "SLV", name: "iShares Silver Trust", cat: "commodity", sub: "precious", metal: "silver", issuer: "BlackRock", er: 0.50, holdings: 1, top10: 100, aum: 15, since: 2006, form: "physical", k1: false, hedge: 6, top: [], sectors: null },
+  { t: "SIVR", name: "abrdn Physical Silver Shares", cat: "commodity", sub: "precious", metal: "silver", issuer: "abrdn", er: 0.30, holdings: 1, top10: 100, aum: 1.5, since: 2009, form: "physical", k1: false, hedge: 6, top: [], sectors: null },
+  { t: "PPLT", name: "abrdn Physical Platinum Shares", cat: "commodity", sub: "precious", metal: "platinum", issuer: "abrdn", er: 0.60, holdings: 1, top10: 100, aum: 1.5, since: 2010, form: "physical", k1: false, hedge: 5, top: [], sectors: null },
+  { t: "CPER", name: "United States Copper Index Fund", cat: "commodity", sub: "industrial", metal: "copper", issuer: "USCF", er: 0.97, holdings: 3, top10: 100, aum: 0.3, since: 2011, form: "futures", k1: true, hedge: 4, top: [], sectors: null },
+  { t: "USO", name: "United States Oil Fund", cat: "commodity", sub: "energy", metal: "oil", issuer: "USCF", er: 0.70, holdings: 1, top10: 100, aum: 1.2, since: 2006, form: "futures", k1: true, hedge: 3, top: [], sectors: null },
+  { t: "UNG", name: "United States Natural Gas Fund", cat: "commodity", sub: "energy", metal: "gas", issuer: "USCF", er: 1.24, holdings: 1, top10: 100, aum: 1, since: 2007, form: "futures", k1: true, hedge: 2, top: [], sectors: null },
+  { t: "DBA", name: "Invesco DB Agriculture Fund", cat: "commodity", sub: "agri", metal: "agri", issuer: "Invesco", er: 0.93, holdings: 10, top10: 100, aum: 0.8, since: 2007, form: "futures", k1: true, hedge: 5, top: [], sectors: null },
+  { t: "DBC", name: "Invesco DB Commodity Index Tracking Fund", cat: "commodity", sub: "broad", metal: "broad", issuer: "Invesco", er: 0.87, holdings: 14, top10: 100, aum: 1.5, since: 2006, form: "futures", k1: true, hedge: 7, top: [], sectors: null },
+  { t: "PDBC", name: "Invesco Optimum Yield Diversified Commodity Strategy No K-1 ETF", cat: "commodity", sub: "broad", metal: "broad", issuer: "Invesco", er: 0.59, holdings: 14, top10: 100, aum: 4.5, since: 2014, form: "futures", k1: false, hedge: 7, top: [], sectors: null },
   { t: "ARKK", name: "ARK Innovation ETF", cat: "thematic", issuer: "ARK Invest", er: 0.75, holdings: 40, top10: 60, aum: 6, since: 2014, top: ["TSLA", "PLTR"], sectors: { tech: 40, discretionary: 20, health: 20, comm: 12, financials: 8 } },
   { t: "IBIT", name: "iShares Bitcoin Trust", cat: "thematic", issuer: "BlackRock", er: 0.25, holdings: 1, top10: 100, aum: 70, since: 2024, top: [], sectors: null, crypto: "bitcoin" },
 ];
 
 /** Asset classes for the portfolio analyst: what each ETF category mostly is. */
-export const ETF_ASSET_CLASS = { us_broad: "equity", intl: "equity", growth: "equity", dividend: "equity", sector: "equity", thematic: "equity", realestate: "equity", bonds: "bonds", commodity: "gold" };
+export const ETF_ASSET_CLASS = { us_broad: "equity", intl: "equity", growth: "equity", dividend: "equity", sector: "equity", thematic: "equity", realestate: "equity", bonds: "bonds", commodity: "commodity" };
+/** The asset class of one fund: precious metals count with gold (a defensive cushion), other commodities on their own. */
+export const etfAssetClass = (e) => (!e ? "equity" : e.crypto ? "crypto" : e.cat === "commodity" && e.sub === "precious" ? "gold" : ETF_ASSET_CLASS[e.cat] || "equity");
+export const COMMODITY_SUBS = ["precious", "industrial", "energy", "agri", "broad"];
+export const isCommodity = (tk) => { const e = ETFS.find((x) => x.t === tk); return !!e && e.cat === "commodity"; };
 
 export const stockByTicker = (tk) => STOCKS.find((s) => s[0] === tk) || null;
 export const etfByTicker = (tk) => ETFS.find((e) => e.t === tk) || null;
