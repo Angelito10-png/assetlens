@@ -1,3 +1,9 @@
+/* Self-hosted variable fonts (SIL Open Font License, see fonts/): no third-party requests, and the four main files are preloaded by each page. */
+@font-face { font-family: "Inter"; font-style: normal; font-display: swap; font-weight: 100 900; src: url(fonts/inter-latin-wght-normal.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Inter"; font-style: normal; font-display: swap; font-weight: 100 900; src: url(fonts/inter-greek-wght-normal.woff2) format("woff2"); unicode-range: U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF; }
+@font-face { font-family: "Space Grotesk"; font-style: normal; font-display: swap; font-weight: 300 700; src: url(fonts/space-grotesk-latin-wght-normal.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-display: swap; font-weight: 100 800; src: url(fonts/jetbrains-mono-latin-wght-normal.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-display: optional; font-weight: 100 800; src: url(fonts/jetbrains-mono-greek-wght-normal.woff2) format("woff2"); unicode-range: U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF; }
 [hidden] { display: none !important; }
 img { max-width: 100%; }
 /* Layout: one analyst column — controls, then verdict + metrics, then factor ledger, then advice; a research note, not a trading screen. */
@@ -5,7 +11,7 @@ img { max-width: 100%; }
   color-scheme: light;
   --bg: #eef2f4; --surface: #ffffff; --sunk: #f5f8f9; --ink: #10202b; --muted: #566876; --line: #d6dee3;
   --accent: #0c6b67; --accent-ink: #ffffff; --accent-soft: #d8efec;
-  --good: #1d7f48; --mid: #a86b12; --bad: #b8402b; --info: #2f5f9e;
+  --good: #18703f; --mid: #8e590f; --bad: #a8392a; --info: #2f5f9e;
   --good-soft: #dcf1e4; --mid-soft: #f6ead3; --bad-soft: #f7e0da; --info-soft: #dfe8f5;
   --f-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
   --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
@@ -107,7 +113,8 @@ button.ghost { font: inherit; font-size: 0.85rem; padding: 6px 12px; border-radi
 .fwhy ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 0.9rem; }
 .inputs { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 0.76rem; color: var(--muted); }
 .inputs b { font-family: var(--f-mono); font-weight: 500; color: var(--ink); }
-.frow.off { opacity: .55; }
+.frow.off, .frow.off .fname h3, .frow.off .fscore .n, .frow.off .fw, .frow.off .fwhy { color: var(--muted); } /* dimmed with colour, not opacity, so the text keeps its contrast */
+.frow.off .bar10 { opacity: .5; }
 @media (max-width: 760px) {
   .frow { grid-template-columns: minmax(0,1fr) 90px; }
   .frow.head { display: none; }
@@ -538,3 +545,13 @@ body { padding-bottom: 32px; } /* room for the help button */
 .ph-stats td.up { color: var(--good); } .ph-stats td.down { color: var(--bad); }
 .ph-stats td:first-child, .sbt .k-table td:first-child { white-space: normal; }
 @media (max-width: 560px) { .ph-stats th, .ph-stats td { padding: 6px 4px; font-size: 0.84rem; } .ph-stats thead th { white-space: normal; } }
+
+/* ---------- accessibility ---------- */
+.skip { position: absolute; left: 16px; top: -48px; z-index: 60; padding: 8px 14px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 600; text-decoration: none; }
+.skip:focus { top: 12px; }
+header.top:focus { outline: none; }
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+/* Reserve the space of parts that scripts fill in, so the page doesn't jump when they arrive. */
+.cats-nav { min-height: 40px; }
+.strats:empty, #homeCards:empty { min-height: 100vh; }

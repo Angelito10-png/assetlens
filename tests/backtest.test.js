@@ -112,3 +112,10 @@ test("portfolioHistory: buy-and-hold of today's mix versus SPY", () => {
   assert.ok(h2.times.length <= 53);
   assert.equal(portfolioHistory([{ symbol: "X", value: 1, bars: null }], spy), null);
 });
+
+test("build step: pegged assets (stablecoins, tokenised cash) are recognised from their prices", async () => {
+  const { pegged } = await import("../scripts/fetch-backtest.mjs");
+  assert.equal(pegged(dailyMap(chart(365, (i) => 1 + 0.002 * Math.sin(i)))), true);
+  assert.equal(pegged(dailyMap(chart(365, (i) => 1.0 + i * 0.0002))), true); // a yield token creeping up 7%
+  assert.equal(pegged(dailyMap(chart(365, (i) => 100 * (1 + 0.3 * Math.sin(i / 40))))), false);
+});

@@ -23,7 +23,7 @@ jobs:
       - run: npm test
       - name: Collect site files
         run: |
-          mkdir _site && cp -r index.html crypto.html markets.html portfolio.html invest.html styles.css src _site/
+          mkdir _site && cp -r index.html crypto.html markets.html portfolio.html invest.html styles.css src fonts _site/
           # Cache-bust: stamp the commit into asset URLs so browsers never mix old and new files.
           sed -i "s/__V__/${GITHUB_SHA::7}/g" _site/*.html _site/src/*.js
       - name: Switch on accounts (Supabase)

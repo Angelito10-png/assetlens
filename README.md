@@ -1,25 +1,112 @@
 # AssetLens
 
-**AssetLens** scores any cryptocurrency, US stock or ETF from 1 to 10 for **your** investor profile (aggressive, defensive or long-term), and gives a rule-based analyst's opinion on your whole portfolio. Every point of every score is explained: you see each factor's sub-score, its weight for your profile, and the raw numbers behind it.
+**Understand an investment before you make it.** AssetLens scores cryptocurrencies, US stocks, ETFs and commodity funds from 1 to 10 for *your* investor profile (aggressive, defensive or long-term), and explains every point of the score. It also checks a whole portfolio with a rule-based analyst, tests whether its own scores worked in the past, and teaches investing strategies with a calculator and a backtest.
 
-The site has a home page that explains the app in plain words, and four sections, switched from the tabs at the top:
+**[Live demo](https://angelito10-png.github.io/assetlens/)** · **[75-second video](docs/media/demo.mp4)** · English and Greek · light and dark · desktop and phone
 
-| Section | What it does | Data |
-|---|---|---|
-| **Crypto** | Scores any coin listed on CoinGecko | CoinGecko market data, GitHub development activity |
-| **Stocks & ETFs** | Scores large US stocks, popular ETFs and commodity funds (gold, silver, copper, oil…) | SEC EDGAR financial statements, weekly prices from Alpha Vantage |
-| **Portfolio** | Checks stocks, ETFs, commodities and crypto held together | All of the above |
-| **How to invest** | Explains investing strategies, calculates a monthly plan, backtests it on real prices | Weekly prices from Alpha Vantage |
+[![Tests](https://github.com/Angelito10-png/assetlens/actions/workflows/ci.yml/badge.svg)](https://github.com/Angelito10-png/assetlens/actions/workflows/ci.yml)
+[![Deploy](https://github.com/Angelito10-png/assetlens/actions/workflows/pages.yml/badge.svg)](https://github.com/Angelito10-png/assetlens/actions/workflows/pages.yml)
 
-Visitors can create a free account (email and password) so their portfolio, watchlists, profile, plan and settings follow them to any device. Without one, everything is kept in the browser.
+![AssetLens in use: scoring a coin, switching profiles, the factor breakdown and the score backtest](docs/media/demo.gif)
 
-**Live demo:** https://angelito10-png.github.io/assetlens/
+> A portfolio project and an educational analysis aid, not financial advice. Scores describe how well an asset fits a profile today; they do not predict prices.
 
-![AssetLens showing Chainlink scored for a long-term investor](docs/screenshot.png)
+## Screenshots
 
-> This is a portfolio project and an analysis aid, not financial advice.
+| | |
+|---|---|
+| ![Home page](docs/media/home.png) **Home**: what the app does and how to use it | ![A coin scored for a long-term investor](docs/media/crypto.png) **Crypto**: a live score with its verdict, flags and advice |
+| ![Factor breakdown](docs/media/crypto-factors.png) **Every factor explained**: sub-score, weight and the raw numbers | ![Score backtest](docs/media/score-backtest.png) **Did high scores pay off?** The score tested on the past year |
+| ![A stock scored for a defensive investor](docs/media/stocks.png) **Stocks & ETFs**: SEC filings and prices | ![Portfolio analyst](docs/media/portfolio.png) **Portfolio**: what works, what doesn't, what to fix |
+| ![Portfolio history against the S&P 500](docs/media/portfolio-history.png) **How the mix did** against the S&P 500 | ![Monthly investing calculator](docs/media/invest.png) **How to invest**: calculator and backtest |
+| ![Help assistant](docs/media/help-assistant.png) **Help assistant**: the app's own help, plus AI answers when signed in | ![Greek, dark theme](docs/media/dark-greek.png) **Greek and dark mode** |
 
-## What it does
+<p align="center"><img src="docs/media/phone.png" width="300" alt="AssetLens on a phone"></p>
+
+Screenshots, the video and the GIF are made by a GitHub Actions workflow (`.github/workflows/media.yml`) that opens the site in a real browser with live data, so they can be refreshed in one click. A narrated version can be recorded with [docs/demo-script.md](docs/demo-script.md) (shot list, timings, narration in English and Greek).
+
+## Highlights
+
+- **Explainable scores.** Seven crypto factors, and separate factor sets for stocks, ETFs and commodity funds, each scored 0 to 10 with fixed, documented thresholds and weighted by profile. Missing data is skipped and shown as coverage, never silently counted as zero.
+- **Three profiles, one asset.** The same coin or stock is judged differently for an aggressive, defensive or long-term investor, and you can tune the weights with sliders.
+- **Honest backtest.** Coins are re-scored on past dates using only what was known then, split into thirds, and compared with Bitcoin over the next 90 days. The page states the method's limits: survivorship bias, overlapping windows and the one-year data window.
+- **Portfolio analyst.** Rule-based and unit-tested. It looks through funds into their holdings, measures volatility from the covariance of weekly returns, flags concentration, overlap and fees, and charts today's mix against the S&P 500 over 1, 3 or 5 years.
+- **Learn to invest.** Strategies in plain words, a monthly-investing calculator, and a backtest of monthly investing on real fund prices.
+- **Help assistant.** A "?" on every page answers from the app's own bilingual help text. Signed-in users get AI answers through a Supabase Edge Function that keeps the key server-side, grounds answers in the help text and the page on screen, refuses buy or sell advice, and limits each user to a set number of questions a day.
+- **Accounts.** Optional email sign-in (Supabase, row-level security) syncs the portfolio, watchlists and plans across devices.
+- **Built to be shared.** Every view is a URL (`?coin=ethereum&profile=defensive&vs=solana`), works in English and Greek, and in light and dark themes.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Browser["Browser: static site, plain ES modules"]
+    UI["Pages<br/>crypto · stocks · portfolio · invest"] --> ENG["Pure engines<br/>engine.js · markets-engine.js<br/>analyst.js · backtest.js · dca.js"]
+    UI --> HB["Help assistant<br/>helpbot.js + help-kb.js"]
+  end
+  subgraph Build["GitHub Actions: deploy every push and every 3 hours"]
+    SEC["fetch-markets.mjs<br/>SEC EDGAR filings"] --> MJ[(markets.json)]
+    NEWS["fetch-news.mjs<br/>RSS / CryptoPanic"] --> NJ[(news.json)]
+    BT["fetch-backtest.mjs<br/>weekly, CoinGecko"] --> BJ[(backtest.json)]
+  end
+  MJ & NJ & BJ --> PAGES["GitHub Pages"] --> UI
+  UI -- "live, keyless" --> CG["CoinGecko · GitHub · alternative.me"]
+  UI -- "visitor's own key" --> AV["Alpha Vantage prices"]
+  UI -- "sign-in, sync" --> SB["Supabase<br/>Auth + Postgres (RLS)"]
+  HB -- "signed in" --> FN["Edge Function ask<br/>daily limit"] --> GM["Google Gemini"]
+```
+
+The scoring engines are pure functions with no DOM or network access, so every rule is unit-tested in Node. The pages only render what the engines return. Secrets never reach the browser: the SEC contact and the CryptoPanic key live in repository secrets used by the build, and the AI key lives in the Edge Function's secrets.
+
+## Data sources and their limits
+
+| Source | Used for | Access | Limits, and how the app handles them |
+|---|---|---|---|
+| CoinGecko | Coin prices, market data, categories, one year of history | Free public API, from the browser and the build | A few calls a minute: responses are cached per session, the backtest is built weekly in the deploy job, and only one year of history is available without a key |
+| GitHub | Development activity of crypto projects | Free public API | 60 calls an hour without a key: cached; the factor is skipped when the limit is hit |
+| SEC EDGAR | Company financial statements | Free, built into `markets.json` by the deploy job | No browser access (no CORS), so it is snapshotted at build time; a few companies file under unusual tags |
+| Alpha Vantage | Weekly stock and ETF prices | Visitor's own free key (25 calls a day) | Free prices can't be republished, so each visitor uses their own key; prices are cached for 20 hours |
+| alternative.me | Crypto Fear & Greed index | Free | None in practice |
+| RSS feeds, CryptoPanic | Headlines | Built into `news.json` | CryptoPanic blocks GitHub's servers, so the RSS feeds carry the hosted demo |
+| Supabase | Accounts, sync, AI question counts | Free tier | Row-level security; the AI key stays in an Edge Function secret |
+| Google Gemini | AI answers in the help assistant | Free tier, server-side only | Daily limit per user; the app falls back to its own help text |
+
+## Tech stack
+
+- **Front end:** HTML, CSS and plain JavaScript ES modules. No framework, no bundler, no chart library: the radar chart, line charts and score dial are hand-built SVG.
+- **Build and hosting:** GitHub Actions and GitHub Pages; Node scripts for the data snapshots.
+- **Back end:** Supabase (Auth, Postgres with row-level security, an Edge Function in TypeScript).
+- **Quality:** 81 unit tests with Node's built-in test runner. Browser checks with Playwright, and Lighthouse reports from the media workflow ([latest results](docs/media/lighthouse.md)).
+- **Accessibility:** Lighthouse accessibility 100 on every page:
+  - contrast checked for both themes;
+  - a skip link, visible focus and keyboard-operable controls;
+  - labelled charts and dialogs;
+  - reduced-motion support.
+- **Performance:**
+  - Self-hosted, preloaded fonts.
+  - The help text and the backtest data load only when needed.
+  - Space is reserved for parts that scripts fill in, so pages don't jump.
+  - API responses are cached in the browser.
+  - Asset URLs are stamped with the commit, so caches never mix versions.
+
+## How to run it
+
+```bash
+git clone https://github.com/Angelito10-png/assetlens.git && cd assetlens
+npm test     # 81 unit tests, Node 20+
+npm start    # serves the site at http://localhost:3000
+```
+
+The crypto section and the investing guide work straight away. Two sections need extra data:
+
+- **Stocks & ETFs and Portfolio** need the SEC snapshot. Build it once with `SEC_USER_AGENT="your-name you@example.com" node scripts/fetch-markets.mjs markets.json`.
+- **The score backtest** needs `backtest.json`. Build it with `node scripts/fetch-backtest.mjs backtest.json`, which takes a few minutes.
+
+Accounts and AI answers are optional; see [Accounts](#accounts) and [Help assistant](#help-assistant).
+
+# In detail
+
+## Crypto section
 
 1. You pick a coin (any of the thousands listed on CoinGecko) and an investor profile.
 2. The app loads live market data from CoinGecko, then finds the project's main GitHub repository and loads its commit, contributor and star counts.
@@ -205,7 +292,7 @@ A "?" button on every page opens a small chat for questions about the app and it
 
 Note: on Google's free tier, prompts may be used to improve Google's products, so the chat tells users not to type personal data.
 
-## Architecture
+## Code layout
 
 No framework, no chart library, no build step, and no server of its own (accounts use Supabase's hosted API). The radar chart is hand-built SVG. It is a static site of plain ES modules, so it deploys anywhere.
 
@@ -220,6 +307,7 @@ src/account.js, src/config.js   accounts: Supabase sign-in, sync of saved data, 
 src/i18n-site.js    English and Greek text for the home page, guide, accounts and help assistant
 src/helpbot.js, src/help-kb.js   help assistant: chat window, the app's help text and its search
 supabase/functions/ask/index.ts   Edge Function behind the AI answers (Gemini, per-user daily limit)
+fonts/              self-hosted variable fonts (Inter, Space Grotesk, JetBrains Mono; SIL Open Font License)
 styles.css          design tokens (light and dark themes) and layout
 src/engine.js       crypto scoring engine: pure functions, no DOM or network
 src/markets-engine.js  stock and ETF factors, profiles and caps
@@ -237,6 +325,7 @@ src/quiz.js         investor-profile quiz: questions and scoring, pure functions
 src/i18n.js         English and Greek dictionaries, t() lookup
 src/api.js          CoinGecko and GitHub clients with sessionStorage caching and rate-limit handling
 scripts/            build steps that run in GitHub Actions: news headlines, the SEC snapshot and the weekly score backtest
+scripts/media/      screenshots, demo video, GIF and Lighthouse table (run by .github/workflows/media.yml)
 src/app.js          UI: coin search, weight sliders, SVG radar chart, comparison, URL state
 tests/              unit tests for the engine, a regression test on real captured API data, and translation checks
 ```
@@ -244,19 +333,6 @@ tests/              unit tests for the engine, a regression test on real capture
 - **Separation of concerns:** the scoring engine is pure and fully unit-tested; the UI only renders what it returns.
 - **Rate limits:** CoinGecko's free API allows a few calls per minute, and GitHub allows 60 anonymous calls per hour. Responses are cached per session, and each analysis uses one CoinGecko call and three or four GitHub calls. When a limit is hit, the app says so and keeps the rest of the score.
 - **Safety:** all data is rendered with `textContent` (never `innerHTML`), and links from the APIs are only used when they start with `http(s)://`.
-
-## Run it locally
-
-```bash
-npm test     # 80 unit tests, Node 20+
-npm start    # serves the site at http://localhost:3000
-```
-
-Any static file server works, since the browser calls the public APIs directly. The Stocks & ETFs and Portfolio sections need the SEC snapshot; build it once with
-
-```bash
-SEC_USER_AGENT="your-name you@example.com" node scripts/fetch-markets.mjs markets.json
-```
 
 ## Deployment
 
@@ -271,6 +347,17 @@ Note: as of November 2026 CryptoPanic's Cloudflare protection refuses requests f
 ### SEC snapshot
 
 The deploy job also runs `scripts/fetch-markets.mjs`. The SEC asks automated clients to identify themselves, so the job reads a user agent with a contact address from the `SEC_USER_AGENT` repository secret. If the job fails, the previous `markets.json` is kept.
+
+### Screenshots, demo video and Lighthouse
+
+`.github/workflows/media.yml` does the following:
+
+1. Builds the site the same way the deploy does and serves it locally.
+2. Opens it in Chromium with live data (`scripts/media/capture.mjs`).
+3. Saves the screenshots, records a captioned demo of about 75 seconds (`docs/media/demo.mp4`, plus `demo.gif` for this page), and runs Lighthouse on every page (`docs/media/lighthouse.md`).
+4. Commits the results to the branch it ran on.
+
+It runs on demand (Actions → "Screenshots, demo video and Lighthouse" → Run workflow) and whenever its own files change. Stock prices on the stock and portfolio screenshots need a free Alpha Vantage key saved as the repository secret `DEMO_AV_KEY`. The key is used only inside that run's throwaway browser.
 
 ## License
 

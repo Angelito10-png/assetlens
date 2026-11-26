@@ -7,7 +7,9 @@
  */
 import { t, getLang } from "./i18n.js?v=__V__";
 import "./i18n-site.js?v=__V__";
-import { searchKb, starters } from "./help-kb.js?v=__V__";
+// The help text (about 40 KB) loads only when the visitor first opens the assistant.
+let kbMod = null;
+const loadKb = () => (kbMod ||= import("./help-kb.js?v=__V__"));
 import { accountsEnabled } from "./config.js?v=__V__";
 import { getClient, signedInUser, openAccount } from "./account.js?v=__V__";
 
@@ -97,6 +99,7 @@ async function ask(question) {
   addMsg("hb-me", question);
   input.value = "";
   chips.hidden = true;
+  const { searchKb } = await loadKb();
   const matches = searchKb(question, lang, 3);
   const user = accountsEnabled() ? signedInUser() : null;
   if (!user) {
@@ -132,7 +135,8 @@ async function ask(question) {
   addMsg("hb-bot", ...kbAnswer(matches, matches.length ? lead : null));
 }
 
-function renderChips() {
+async function renderChips() {
+  const { starters } = await loadKb();
   chips.replaceChildren(h("span", { class: "muted" }, t("hb_try")), ...starters(pageKey(location.pathname), getLang()).map((q) => {
     const b = h("button", { type: "button", class: "hb-chip" }, q);
     b.addEventListener("click", () => ask(q));
