@@ -384,7 +384,7 @@ const elUi = {
 
 /* ---------------- page strings: portfolio analyst ---------------- */
 const enPf = {
-  p_eyebrow: "Portfolio check-up", p_title: "Portfolio Analyst",
+  p_eyebrow: "Portfolio check-up", p_title: "AssetLens",
   p_lede: "Enter what you own (stocks, ETFs and crypto together) and the analyst tells you what works, what doesn't and what to fix for your investor profile. Every point shows its numbers.",
   p_holdings: "Your holdings", p_asset: "Stock, ETF or coin", p_assetPh: "VOO, AAPL, Bitcoin…", p_value: "Value in $", p_ask: "Ask the analyst", p_howWorks: "How the analyst works",
   p_footer: "A rule-based analyst: every sentence comes from a fixed rule applied to your numbers, so the same portfolio always gets the same advice. Holdings are saved in this browser only. This is a portfolio project and an analysis aid, not financial advice.",
@@ -455,7 +455,7 @@ const enPf = {
   a_f_weak: (s) => `Review ${s}: open it on the Stocks & ETFs page to see which factors pull it down.`,
 };
 const elPf = {
-  p_eyebrow: "Έλεγχος χαρτοφυλακίου", p_title: "Αναλυτής χαρτοφυλακίου",
+  p_eyebrow: "Έλεγχος χαρτοφυλακίου", p_title: "AssetLens",
   p_lede: "Βάλε τι έχεις (μετοχές, ETF και κρυπτο μαζί) και ο αναλυτής σου λέει τι πάει καλά, τι όχι και τι να διορθώσεις για το επενδυτικό σου προφίλ. Κάθε σημείο δείχνει τους αριθμούς του.",
   p_holdings: "Οι θέσεις σου", p_asset: "Μετοχή, ETF ή νόμισμα", p_assetPh: "VOO, AAPL, Bitcoin…", p_value: "Αξία σε $", p_ask: "Ρώτα τον αναλυτή", p_howWorks: "Πώς δουλεύει ο αναλυτής",
   p_footer: "Αναλυτής με κανόνες: κάθε πρόταση βγαίνει από σταθερό κανόνα πάνω στους αριθμούς σου, άρα το ίδιο χαρτοφυλάκιο παίρνει πάντα την ίδια γνώμη. Οι θέσεις αποθηκεύονται μόνο σε αυτόν τον browser. Είναι project για portfolio και βοήθημα ανάλυσης, όχι επενδυτική συμβουλή.",

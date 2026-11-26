@@ -1,5 +1,5 @@
 /**
- * Coin Scorecard scoring engine.
+ * AssetLens crypto scoring engine.
  * Pure functions only: no DOM, no network. Everything here is unit-tested in tests/engine.test.js.
  */
 import { t } from "./i18n.js?v=__V__";
