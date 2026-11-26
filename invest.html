@@ -6,12 +6,15 @@
 <title>AssetLens · How to invest</title>
 <meta name="description" content="Monthly investing (DCA), lump sum, value averaging and other strategies explained simply, with a calculator and a backtest on real prices.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%230c6b67' stroke-width='5' stroke-dasharray='60 82' transform='rotate(-90 16 16)'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/inter-greek-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jetbrains-mono-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css?v=__V__">
 <script>try{var th=localStorage.getItem("cs-theme");if(th==="light"||th==="dark")document.documentElement.dataset.theme=th;}catch(e){}</script>
 </head>
 <body>
+<a class="skip" href="#content" data-i18n="skip">Skip to content</a>
 <div class="wrap">
   <nav class="sections" data-i18n-aria="navAria" aria-label="Sections">
     <a data-nav="./" href="./" data-i18n="nav_home">Home</a>
@@ -20,11 +23,11 @@
     <a data-nav="portfolio.html" href="portfolio.html" data-i18n="nav_portfolio">Portfolio</a>
     <a data-nav="invest.html" href="invest.html" aria-current="page" data-i18n="nav_invest">How to invest</a>
   </nav>
-  <header class="top">
+  <header class="top" id="content" tabindex="-1">
     <div>
       <div class="eyebrow" data-i18n="g_eyebrow">Investing strategies, in plain words</div>
       <h1 data-i18n="g_h1">How to invest</h1>
-      <p data-i18n="g_lede"></p>
+      <p data-i18n="g_lede">There is more than one way to put money to work. Here are the common ones, what they're good for, and a calculator to see how a monthly plan could grow.</p>
     </div>
     <div class="top-side">
       <div class="toggles">
@@ -58,11 +61,11 @@
 
   <section class="panel calc" id="bt" aria-labelledby="bTitle">
     <h2 id="bTitle" data-i18n="b_title">Try it on real history</h2>
-    <p class="muted" data-i18n="b_lede"></p>
+    <p class="muted" data-i18n="b_lede">What if you had invested every month in a real fund? Uses weekly prices with dividends reinvested.</p>
     <div id="btBody"></div>
   </section>
 
-  <p class="foot"><span data-i18n="k_disclaimer"></span> <span data-i18n="h_foot"></span> <a href="https://github.com/Angelito10-png/assetlens" target="_blank" rel="noopener" data-i18n="sourceCode">Source code</a></p>
+  <p class="foot"><span data-i18n="k_disclaimer">Returns are not steady in real life: some years are down 20% or more. The calculator uses a smooth average so you can see the effect of time and of the amount. It is not a forecast.</span> <span data-i18n="h_foot">AssetLens is a portfolio project and an analysis aid, not financial advice. Scores describe how well an asset fits a profile today; they do not predict prices.</span> <a href="https://github.com/Angelito10-png/assetlens" target="_blank" rel="noopener" data-i18n="sourceCode">Source code</a></p>
 </div>
 <script type="module" src="src/invest-app.js?v=__V__"></script>
 <script type="module" src="src/account.js?v=__V__"></script>

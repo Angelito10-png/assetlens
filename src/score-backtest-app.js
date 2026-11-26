@@ -75,12 +75,18 @@ async function init() {
   relabel();
   document.querySelectorAll('input[name="profile"]').forEach((r) => r.addEventListener("change", render));
   document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => setTimeout(relabel)));
-  try {
-    const r = await fetch("backtest.json", { cache: "no-cache" });
-    if (!r.ok) throw new Error(String(r.status));
-    data = await r.json();
-  } catch { failed = true; }
-  render();
+  // The section sits at the bottom of the page: fetch its data only when the visitor gets close to it.
+  const load = async () => {
+    try {
+      const r = await fetch("backtest.json", { cache: "no-cache" });
+      if (!r.ok) throw new Error(String(r.status));
+      data = await r.json();
+    } catch { failed = true; }
+    render();
+  };
+  if (!("IntersectionObserver" in window)) return load();
+  const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); load(); } }, { rootMargin: "600px 0px" });
+  io.observe(box);
 }
 
 if (typeof document !== "undefined") init();

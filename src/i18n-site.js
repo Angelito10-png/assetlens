@@ -5,7 +5,7 @@
 import { LANGS } from "./i18n.js?v=__V__";
 
 const en = {
-  nav_home: "Home", nav_invest: "How to invest",
+  nav_home: "Home", nav_invest: "How to invest", skip: "Skip to content",
 
   // ---- accounts ----
   ac_login: "Log in", ac_signup: "Sign up", ac_account: "Account", ac_logout: "Log out",
@@ -144,7 +144,7 @@ const en = {
 };
 
 const el = {
-  nav_home: "Αρχική", nav_invest: "Πώς να επενδύσεις",
+  nav_home: "Αρχική", nav_invest: "Πώς να επενδύσεις", skip: "Μετάβαση στο περιεχόμενο",
 
   ac_login: "Σύνδεση", ac_signup: "Εγγραφή", ac_account: "Λογαριασμός", ac_logout: "Αποσύνδεση",
   ac_email: "Email", ac_password: "Κωδικός", ac_password2: "Νέος κωδικός",

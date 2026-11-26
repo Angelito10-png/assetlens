@@ -1,0 +1,55 @@
+name: Screenshots, demo video and Lighthouse
+# Builds the site like the deploy job, opens it in a real browser with live data, and commits
+# fresh screenshots, a demo video, a GIF and a Lighthouse table to docs/media on the same branch.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/**"]
+    paths: ["scripts/media/**", ".github/workflows/media.yml"]
+permissions:
+  contents: write
+concurrency:
+  group: media-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright, Lighthouse and ffmpeg
+        run: |
+          npm i --no-save --no-package-lock playwright@1.49.1 lighthouse@12.3.0
+          npx playwright install --with-deps chromium
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+      - name: Build the site with the published data files
+        run: |
+          mkdir _site && cp -r index.html crypto.html markets.html portfolio.html invest.html styles.css src fonts _site/
+          sed -i "s/__V__/${GITHUB_SHA::7}/g" _site/*.html _site/src/*.js
+          for f in markets.json news.json backtest.json; do curl -fsS -o _site/$f https://angelito10-png.github.io/assetlens/$f || echo "no $f"; done
+          (cd _site && python3 -m http.server 8080 >/dev/null 2>&1 &)
+          sleep 2
+      - name: Screenshots, video and GIF
+        env:
+          DEMO_AV_KEY: ${{ secrets.DEMO_AV_KEY }}
+        run: node scripts/media/capture.mjs http://localhost:8080 docs/media
+      - name: Lighthouse
+        run: |
+          export CHROME_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())")
+          mkdir -p lh
+          for pg in index crypto markets portfolio invest; do
+            npx lighthouse http://localhost:8080/$pg.html --quiet --chrome-flags="--headless=new --no-sandbox" \
+              --only-categories=performance,accessibility,best-practices,seo --output=json --output-path=lh/$pg.json || true
+          done
+          node scripts/media/lh-summary.mjs lh docs/media/lighthouse.md
+      - name: Commit the results to this branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/media
+          git diff --cached --quiet && echo "Nothing changed" && exit 0
+          git commit -m "Update screenshots, demo video and Lighthouse results"
+          git push origin HEAD:${GITHUB_REF_NAME}
