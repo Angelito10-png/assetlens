@@ -14,9 +14,11 @@
 <body>
 <div class="wrap">
   <nav class="sections" data-i18n-aria="navAria" aria-label="Sections">
-    <a data-nav="./" href="./" data-i18n="nav_crypto">Crypto</a>
+    <a data-nav="./" href="./" data-i18n="nav_home">Home</a>
+    <a data-nav="crypto.html" href="crypto.html" data-i18n="nav_crypto">Crypto</a>
     <a data-nav="markets.html" href="markets.html" aria-current="page" data-i18n="nav_markets">Stocks &amp; ETFs</a>
     <a data-nav="portfolio.html" href="portfolio.html" data-i18n="nav_portfolio">Portfolio</a>
+    <a data-nav="invest.html" href="invest.html" data-i18n="nav_invest">How to invest</a>
   </nav>
   <header class="top">
     <div>
@@ -87,5 +89,6 @@
 <dialog id="catDrawer" class="drawer" aria-labelledby="catTitle"><div id="catPanel" class="drawer-card"></div></dialog>
 <dialog id="quiz" class="quiz" aria-labelledby="quizTitle"></dialog>
 <script type="module" src="src/markets-app.js?v=__V__"></script>
+<script type="module" src="src/account.js?v=__V__"></script>
 </body>
 </html>

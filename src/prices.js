@@ -17,7 +17,7 @@ const r4 = (v) => (v === null || !isFinite(v) ? null : Math.round(v * 1e4) / 1e4
  * keeping the last `years` years. Throws an Error with .kind for API messages
  * ("rate_limit" for the daily cap, "bad_key", "not_found").
  */
-export function parseAlphaWeekly(json, years = 6) {
+export function parseAlphaWeekly(json, years = 20) { // 20 years: enough for the backtest on the investing page
   if (!json || typeof json !== "object") throw Object.assign(new Error("empty response"), { kind: "http" });
   const msg = json.Note || json.Information || json["Error Message"];
   if (msg) {
