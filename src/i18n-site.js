@@ -126,6 +126,21 @@ const en = {
   b_none: "No price history for this ticker.", b_err: "Couldn't load prices. Try again later.",
   b_short: (y) => `Only ${y} years of prices are available, so the test uses all of them.`,
   b_loading: "Loading prices…",
+
+  // ---- help assistant ----
+  hb_open: "Ask for help", hb_title: "AssetLens help", hb_close: "Close help",
+  hb_hello: "Hi! Ask me anything about the app or a term you don't understand, like P/E, FDV, DCA or why a score came out the way it did.",
+  hb_ph: "Type your question…", hb_send: "Send", hb_try: "Try:",
+  hb_thinking: "Thinking…", hb_fromHelp: "From the app's help:", hb_more: "Related:",
+  hb_noMatch: "I couldn't find that in the app's help. Try other words, or one of the suggestions.",
+  hb_loginAi: "Log in to get answers from the AI assistant, written for your exact question and what's on your screen.",
+  hb_loginBtn: "Log in",
+  hb_err_limit: (n) => `You've used today's ${n} AI questions. Here is what the app's help says:`,
+  hb_err_busy: "The AI is busy right now. Here is what the app's help says:",
+  hb_err_off: "The AI assistant isn't available right now. Here is what the app's help says:",
+  hb_err_blocked: "I can't answer that one. I can help with the app and investing terms.",
+  hb_note: "AI answers can be wrong and are not financial advice. Questions go to Google Gemini; don't include personal data.",
+  hb_aiTag: "AI", hb_left: (n) => `${n} AI questions left today`,
 };
 
 const el = {
@@ -245,6 +260,20 @@ const el = {
   b_none: "Δεν υπάρχει ιστορικό τιμών για αυτό το σύμβολο.", b_err: "Δεν φορτώθηκαν οι τιμές. Δοκίμασε αργότερα.",
   b_short: (y) => `Υπάρχουν τιμές μόνο για ${y} χρόνια, οπότε η δοκιμή τα χρησιμοποιεί όλα.`,
   b_loading: "Φόρτωση τιμών…",
+
+  hb_open: "Βοήθεια", hb_title: "Βοηθός AssetLens", hb_close: "Κλείσιμο βοηθού",
+  hb_hello: "Γεια! Ρώτα με ό,τι θες για την εφαρμογή ή για έναν όρο που δεν καταλαβαίνεις, όπως P/E, FDV, DCA ή γιατί βγήκε έτσι ένας βαθμός.",
+  hb_ph: "Γράψε την ερώτησή σου…", hb_send: "Αποστολή", hb_try: "Δοκίμασε:",
+  hb_thinking: "Σκέφτομαι…", hb_fromHelp: "Από τη βοήθεια της εφαρμογής:", hb_more: "Σχετικά:",
+  hb_noMatch: "Δεν το βρήκα στη βοήθεια της εφαρμογής. Δοκίμασε με άλλα λόγια ή μία από τις προτάσεις.",
+  hb_loginAi: "Συνδέσου για να παίρνεις απαντήσεις από τον βοηθό AI, γραμμένες για τη δική σου ερώτηση και ό,τι βλέπεις στην οθόνη.",
+  hb_loginBtn: "Σύνδεση",
+  hb_err_limit: (n) => `Χρησιμοποίησες τις ${n} ερωτήσεις AI για σήμερα. Να τι λέει η βοήθεια της εφαρμογής:`,
+  hb_err_busy: "Το AI είναι απασχολημένο αυτή τη στιγμή. Να τι λέει η βοήθεια της εφαρμογής:",
+  hb_err_off: "Ο βοηθός AI δεν είναι διαθέσιμος αυτή τη στιγμή. Να τι λέει η βοήθεια της εφαρμογής:",
+  hb_err_blocked: "Σε αυτό δεν μπορώ να απαντήσω. Μπορώ να βοηθήσω με την εφαρμογή και τους επενδυτικούς όρους.",
+  hb_note: "Οι απαντήσεις AI μπορεί να έχουν λάθη και δεν είναι επενδυτική συμβουλή. Οι ερωτήσεις πάνε στο Google Gemini· μη γράφεις προσωπικά στοιχεία.",
+  hb_aiTag: "AI", hb_left: (n) => `Απομένουν ${n} ερωτήσεις AI για σήμερα`,
 };
 
 Object.assign(LANGS.en, en);

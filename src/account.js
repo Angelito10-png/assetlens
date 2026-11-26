@@ -65,12 +65,15 @@ export function errorKey(err) {
 let client = null, user = null, lastSync = null, syncState = "idle", syncErr = "", pushTimer = null, recovering = false;
 const errText = (e) => String((e && (e.message || e.code)) || e || "").slice(0, 160);
 
-async function getClient() {
+export async function getClient() {
   if (client) return client;
   const { createClient } = await import(SDK);
   client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   return client;
 }
+
+/** The signed-in user, or null. */
+export const signedInUser = () => user;
 
 function local() { try { return localStorage; } catch { return { getItem: () => null, setItem() {} }; } }
 
@@ -295,6 +298,7 @@ export function mountAccount() {
       user = session ? session.user : null;
       if (event === "PASSWORD_RECOVERY") { recovering = true; if (!dlg.open) dlg.showModal(); }
       renderPanel();
+      window.dispatchEvent(new CustomEvent("al-auth", { detail: { user } }));
       if (user && (!was || was.id !== user.id)) {
         // defer: Supabase asks not to await other calls inside this callback
         setTimeout(() => pullAndMerge().then((changed) => {
