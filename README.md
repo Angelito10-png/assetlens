@@ -66,6 +66,28 @@ Design choices worth calling out:
 
 Limits: neither source says who runs a project, so GitHub activity stands in for team credibility. The app cannot detect anonymous teams, past scandals, missing audits or token unlock dates.
 
+### Score backtest: did high scores pay off?
+
+The crypto page tests the score against the past. Once a week the deploy job (`scripts/fetch-backtest.mjs`) loads a year of daily prices, market caps and volumes for today's 40 largest coins (no stablecoins or wrapped tokens) from CoinGecko's free API. Then:
+
+1. On a scoring date every 30 days, each coin is scored using **only the data known that day**. A unit test checks that changing later prices doesn't change the score.
+2. The coins are split into thirds by score, and each third's equal-weight return over the next 90 days is compared with the bottom third and with holding Bitcoin.
+3. The page shows the result for the chosen profile:
+   - a plain-language verdict (top third beat bottom third on k of m dates);
+   - the average return of each group;
+   - the rank correlation between score and later return;
+   - a chart of the groups scored about six months ago and held until today;
+   - the table of every scoring date.
+
+Limits, also stated on the page:
+
+- **Factors used.** Only size, momentum and stability can be rebuilt for past dates. Tokenomics, development, maturity and community are left out.
+- **Price window.** The free API gives one year of history, so the one-year change and the true all-time high aren't available.
+- **Survivorship bias.** Today's largest coins exclude those that collapsed.
+- **Overlapping windows.** Scoring dates are 30 days apart but each is held 90 days, so the results are not independent.
+
+Only derived results (scores, group returns, growth curves) are published, never raw prices. Stocks and ETFs will join once their price history can be published (see below).
+
 ## Stocks & ETFs
 
 The same tools as the crypto section (profiles, weight sliders, radar, side-by-side comparison, quiz, watchlist, sector menu, news, Greek and English), on a different set of factors.
@@ -136,6 +158,8 @@ Other rules: a 3 to 15% gold position counts as a strength for defensive and lon
 
 **Portfolio score** = the value-weighted average of the holdings' scores, minus 1 point for each serious problem and 0.5 for each moderate one (at most 3). A portfolio of great companies can still be a poor fit if one of them is 60% of a defensive investor's money. Volatility uses the covariance of weekly returns when prices are available, so diversification shows up in the number.
 
+**How this mix did.** Under the report, a chart shows today's mix bought 1, 3 or 5 years ago and held without rebalancing (adjusted prices, so dividends are reinvested), against the S&P 500 (SPY). It also gives the return, the return a year, the largest drop and the yearly volatility. Holdings without prices are left out and listed. A holding with shorter history moves the start date, which is said on the page: crypto has one year of free data.
+
 Holdings stay in the browser (and in your account when you log in) and in the URL (`?h=s:AAPL:5000,e:VOO:10000,c:bitcoin:2000`), so a portfolio can be shared as a link.
 
 ## How to invest
@@ -189,6 +213,8 @@ No framework, no chart library, no build step, and no server of its own (account
 index.html          home page
 crypto.html, markets.html, portfolio.html, invest.html   the four sections (old ?coin= links on / are forwarded to crypto.html)
 src/home.js, src/invest-app.js   the home page and the investing guide, calculator and backtest
+src/backtest.js     score backtest (point-in-time crypto scores, thirds, rank correlation) and portfolio history: pure functions
+src/score-backtest-app.js, src/linechart.js, src/i18n-backtest.js   the backtest section, the shared line chart, their English and Greek text
 src/dca.js          monthly plan, goal, required return and backtest maths: pure functions
 src/account.js, src/config.js   accounts: Supabase sign-in, sync of saved data, settings filled at deploy
 src/i18n-site.js    English and Greek text for the home page, guide, accounts and help assistant
@@ -210,7 +236,7 @@ src/categories.js   category menu (CoinGecko category ids) and ranking with the 
 src/quiz.js         investor-profile quiz: questions and scoring, pure functions
 src/i18n.js         English and Greek dictionaries, t() lookup
 src/api.js          CoinGecko and GitHub clients with sessionStorage caching and rate-limit handling
-scripts/            build steps that run in GitHub Actions: news headlines and the SEC snapshot
+scripts/            build steps that run in GitHub Actions: news headlines, the SEC snapshot and the weekly score backtest
 src/app.js          UI: coin search, weight sliders, SVG radar chart, comparison, URL state
 tests/              unit tests for the engine, a regression test on real captured API data, and translation checks
 ```
@@ -222,7 +248,7 @@ tests/              unit tests for the engine, a regression test on real capture
 ## Run it locally
 
 ```bash
-npm test     # 72 unit tests, Node 20+
+npm test     # 80 unit tests, Node 20+
 npm start    # serves the site at http://localhost:3000
 ```
 
