@@ -97,9 +97,16 @@ export async function handle(req, env, fetchImpl = fetch) {
 
   // 4. ask the model
   const model = env.GEMINI_MODEL || MODEL_DEFAULT;
-  const r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-    method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY }, body: JSON.stringify(request),
+  const call = (reqBody) => fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY }, body: JSON.stringify(reqBody),
   });
+  let r = await call(request);
+  // Some models can't switch thinking off and answer 400 to thinkingBudget 0: ask again without it.
+  if (r.status === 400) {
+    console.error("ask: Gemini 400 with thinking off, retrying without thinkingConfig:", clip(await r.text(), 300));
+    const { thinkingConfig, ...gen } = request.generationConfig;
+    r = await call({ ...request, generationConfig: { ...gen, maxOutputTokens: 4096 } });
+  }
   if (r.status === 429) return json(429, { error: "busy" }, cors);
   if (!r.ok) {
     const detail = clip(await r.text(), 300);
