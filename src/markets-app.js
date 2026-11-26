@@ -43,7 +43,7 @@ function assetWith(tk, bars) {
 
 async function loadPrices(tk) {
   try {
-    if (!spyBars && tk !== "SPY") { try { spyBars = (await weeklyBars("SPY")).bars; } catch (e) { if (e.kind !== "no_key") throw e; } }
+    if (!spyBars && tk !== "SPY") { try { spyBars = (await weeklyBars("SPY")).bars; } catch { /* the benchmark only feeds beta; the stock's own prices still load */ } }
     const r = await weeklyBars(tk);
     if (tk === "SPY") spyBars = r.bars;
     return { bars: r.bars, status: r.stale ? "stale" : "ok", source: r.source, at: r.at };
