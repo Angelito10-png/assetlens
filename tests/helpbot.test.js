@@ -51,7 +51,7 @@ test("ask function: prompt is clipped, grounded and keeps the rules", () => {
   assert.equal(readAnswer({ candidates: [{ finishReason: "SAFETY" }] }).blocked, true);
   assert.equal(readAnswer({ candidates: [{ content: { parts: [{ text: "plan", thought: true }, { text: "Answer" }] } }] }).text, "Answer");
   assert.equal(readAnswer({ candidates: [{ finishReason: "MAX_TOKENS", content: { parts: [] } }] }).reason, "MAX_TOKENS");
-  assert.equal(buildPrompt({ q: "x" }).request.generationConfig.thinkingConfig.thinkingBudget, 0);
+  assert.equal(buildPrompt({ q: "x" }).request.generationConfig.thinkingConfig, undefined);
 });
 
 test("ask function: needs a signed-in user, counts questions, stops at the limit", async () => {
@@ -77,13 +77,13 @@ test("ask function: needs a signed-in user, counts questions, stops at the limit
   assert.equal((await handle(req("Bearer a.b.c"), { SUPABASE_URL: "https://p.supabase.co" }, fake)).status, 503, "no AI key → not configured");
 });
 
-test("ask function retries without thinkingConfig when Gemini answers 400", async () => {
+test("ask function retries with a minimal request when Gemini answers 400", async () => {
   const sent = [];
   const fake = async (url, init) => {
     if (url.endsWith("/auth/v1/user")) return new Response("{}", { status: 200 });
     if (url.includes("bump_ai_usage")) return new Response("1", { status: 200 });
     const body = JSON.parse(init.body); sent.push(body);
-    if (body.generationConfig.thinkingConfig) return new Response('{"error":{"message":"Budget 0 is invalid"}}', { status: 400 });
+    if (body.systemInstruction) return new Response('{"error":{"message":"Budget 0 is invalid"}}', { status: 400 });
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "Ok" }] } }] }), { status: 200 });
   };
   const req = new Request("https://x/functions/v1/ask", { method: "POST", headers: { authorization: "Bearer a.b.c", apikey: "k" }, body: JSON.stringify({ q: "what is FDV?" }) });
@@ -91,5 +91,8 @@ test("ask function retries without thinkingConfig when Gemini answers 400", asyn
   assert.equal(res.status, 200);
   assert.equal((await res.json()).answer, "Ok");
   assert.equal(sent.length, 2);
-  assert.equal(sent[1].generationConfig.thinkingConfig, undefined);
+  assert.equal(sent[1].systemInstruction, undefined);
+  assert.equal(sent[1].generationConfig, undefined);
+  assert.equal(sent[1].contents.length, 1);
+  assert.match(sent[1].contents[0].parts[0].text, /help assistant inside AssetLens[\s\S]*what is FDV\?/);
 });

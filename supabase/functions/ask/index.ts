@@ -10,6 +10,7 @@
 // paste this file, Deploy. Secrets: Edge Functions → Secrets → GEMINI_API_KEY.
 // Written as plain JavaScript (valid TypeScript) in one file so it can be pasted as is.
 
+const VERSION = "v4"; // shown in the logs, to check which code is deployed
 const MODEL_DEFAULT = "gemini-flash-lite-latest"; // Google's alias for the current free Flash-Lite model
 const LIMITS = { question: 500, context: 2500, kb: 5000, turns: 6, turnChars: 800 };
 
@@ -54,9 +55,9 @@ export function buildPrompt(body) {
     request: {
       systemInstruction: { parts: [{ text: SYSTEM }] },
       contents: [...history, { role: "user", parts: [{ text: user }] }],
-      // Newer Flash models "think" first, and thinking tokens count against maxOutputTokens: with a small
-      // limit the model can stop before writing any answer. So thinking is turned off and the limit is roomy.
-      generationConfig: { temperature: 0.3, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } },
+      // Newer Flash models "think" first, and thinking tokens count against maxOutputTokens, so the limit
+      // is roomy (the prompt itself keeps answers short). No thinkingConfig: not every model accepts it.
+      generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
     },
   };
 }
@@ -101,21 +102,22 @@ export async function handle(req, env, fetchImpl = fetch) {
     method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY }, body: JSON.stringify(reqBody),
   });
   let r = await call(request);
-  // Some models can't switch thinking off and answer 400 to thinkingBudget 0: ask again without it.
+  // If the model rejects the request shape, ask once more in the simplest form Gemini accepts:
+  // one user message (rules + question), no system instruction, history or settings.
   if (r.status === 400) {
-    console.error("ask: Gemini 400 with thinking off, retrying without thinkingConfig:", clip(await r.text(), 300));
-    const { thinkingConfig, ...gen } = request.generationConfig;
-    r = await call({ ...request, generationConfig: { ...gen, maxOutputTokens: 4096 } });
+    console.error(`ask ${VERSION}: Gemini 400, retrying with a minimal request:`, clip(await r.text(), 300));
+    const last = request.contents[request.contents.length - 1].parts[0].text;
+    r = await call({ contents: [{ role: "user", parts: [{ text: `${SYSTEM}\n\n${last}` }] }] });
   }
   if (r.status === 429) return json(429, { error: "busy" }, cors);
   if (!r.ok) {
     const detail = clip(await r.text(), 300);
-    console.error("ask: Gemini HTTP", r.status, model, detail); // shows in Supabase → Edge Functions → ask → Logs
+    console.error(`ask ${VERSION}: Gemini HTTP`, r.status, model, detail); // shows in Supabase → Edge Functions → ask → Logs
     return json(502, { error: "model", status: r.status, detail }, cors);
   }
   const out = readAnswer(await r.json());
   if (!out.text) {
-    console.error("ask: no answer text from", model, "finishReason:", out.reason || "(none)", out.blocked ? "(blocked)" : "");
+    console.error(`ask ${VERSION}: no answer text from`, model, "finishReason:", out.reason || "(none)", out.blocked ? "(blocked)" : "");
     return json(200, { error: out.blocked ? "blocked" : "empty_answer", reason: out.reason }, cors);
   }
   return json(200, { answer: out.text, used, limit }, cors);
