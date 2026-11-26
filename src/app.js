@@ -3,7 +3,8 @@ import { topCoins, coinInfo, searchCoins, githubActivity, newsFeed, marketsFor, 
 import { t, setLang, getLang } from "./i18n.js?v=__V__";
 import "./i18n-markets.js?v=__V__"; // section names for the top navigation
 import { QUESTIONS, PROFILE_KEYS, quizResult } from "./quiz.js?v=__V__";
-import { CATEGORIES, categoryByKey, rankRows } from "./categories.js?v=__V__";
+import { CATEGORIES, categoryByKey, rankRows, categoryOf } from "./categories.js?v=__V__";
+import { mountRails, loadMarket, renderMarket, renderGlance, pickSimilar, topRisks } from "./sidebar.js?v=__V__";
 import { createWatchlist, fromSnapshot, MAX as WATCH_MAX } from "./watchlist.js?v=__V__";
 
 const $ = (id) => document.getElementById(id);
@@ -251,6 +252,7 @@ function render() {
   if (!current) return;
   const c = current, pk = profile(), r = E.score(c, pk, customWeights), [vText, vKey] = E.verdict(r.total);
   const who = customWeights ? t("whoCustom") : t("whoProfile", r.profile.label);
+  glance(c, r, vText, vKey, who);
   const all = Object.keys(E.PROFILES).map((k) => [k, E.score(c, k).total, E.PROFILES[k].label]);
   if (customWeights) all.push(["custom", r.total, t("profile_custom")]);
 
@@ -582,6 +584,7 @@ function applyLang(lang, save) {
   $("profNote").textContent = E.PROFILES[profile()].blurb;
   renderWeights(); renderMethod(); renderCatsNav();
   if ($("quiz").open) { const y = $("quiz").querySelector(".quiz-body")?.scrollTop; renderQuiz(); const b = $("quiz").querySelector(".quiz-body"); if (b && y) b.scrollTop = y; }
+  renderMarket();
   if (current) { render(); writeUrl(); }
   if (lastError) { const [h, b] = errorCopy(lastError); notice(lastError instanceof ApiError && lastError.kind === "rate_limit" ? "warn" : "bad", h, b); status("error", t(current ? "showingLast" : "noData")); }
   else if (meta) setLiveStatus();
@@ -594,6 +597,32 @@ function applyTheme(theme, save) {
   document.querySelectorAll("[data-theme-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeBtn === theme)));
 }
 
+/* ---------- side column: at a glance + better-scoring coins in the same category ---------- */
+const catRowsCache = {}; // CoinGecko category id → market rows (undefined = not asked, null = failed)
+function glance(c, r, vText, vKey, who) {
+  const cat = categoryOf(c.categories);
+  let similar;
+  if (cat) {
+    const rows = catRowsCache[cat.id];
+    if (rows === undefined) {
+      similar = null;
+      catRowsCache[cat.id] = "loading";
+      categoryCoins(cat.id).then((x) => { catRowsCache[cat.id] = x || null; }).catch(() => { catRowsCache[cat.id] = null; }).then(() => { if (current) render(); });
+    } else if (rows === "loading") similar = null;
+    else if (rows) {
+      const ranked = rankRows(rows, profile(), customWeights, "score");
+      const self = ranked.find((x) => x.id === c.id);
+      similar = pickSimilar({ id: c.id, score: self ? self.total : r.total }, ranked.map((x) => ({ id: x.id, score: x.total, label: x.name, sub: x.symbol, onOpen: () => { analyze(x.id); window.scrollTo({ top: 0, behavior: "smooth" }); } })));
+    }
+  }
+  renderGlance({
+    title: c.name, sub: c.symbol, score: r.total, vKey, verdictText: t("fitFor", vText, who),
+    risks: topRisks(r.flags),
+    similarTitle: cat ? t("sb_similar", t("cat_" + cat.key)) : "", similar: cat ? similar : undefined,
+    similarEmpty: t("sb_similarNone"), note: cat && similar && similar.length ? t("sb_quickNote") : null,
+  });
+}
+
 /* ---------- boot ---------- */
 function init() {
   const url = readUrl();
@@ -601,6 +630,8 @@ function init() {
   setLang(url.lang || store.get("cs-lang") || nav);
   applyTheme(store.get("cs-theme") || "system", false);
   applyStatic();
+  mountRails();
+  loadMarket();
   document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => applyLang(b.dataset.lang, true)));
   document.querySelectorAll("[data-theme-btn]").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.themeBtn, true)));
   const startProfile = (url.profile && E.PROFILES[url.profile] && url.profile) || store.get("cs-profile");

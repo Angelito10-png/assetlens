@@ -526,8 +526,30 @@ const elPf = {
   a_f_weak: (s) => `Ξαναδές το ${s}: άνοιξέ το στη σελίδα Μετοχές & ETF για να δεις ποιοι παράγοντες το ρίχνουν.`,
 };
 
-Object.assign(en, enUi, enPf);
-Object.assign(el, elUi, elPf);
+
+const enSb = {
+  sb_market: "Market overview", sb_sp500: "S&P 500 (SPY)", sb_nasdaq: "Nasdaq 100 (QQQ)", sb_btc: "Bitcoin", sb_total: "Crypto market",
+  sb_week: "1 week", sb_24h: "24 hours", sb_btcDom: (d) => `Bitcoin ${d}% of it`, sb_needKey: "Add a free key",
+  sb_fng: "Crypto Fear & Greed", sb_fng_xfear: "Extreme fear", sb_fng_fear: "Fear", sb_fng_neutral: "Neutral", sb_fng_greed: "Greed", sb_fng_xgreed: "Extreme greed",
+  sb_sources: "CoinGecko and alternative.me. The two indices are tracked through their funds, with your own Alpha Vantage key.",
+  sb_glance: "At a glance", sb_topRisks: "Top risks",
+  sb_similar: (g) => `Higher-scoring in ${g}`, sb_similarNone: "Nothing in this group scores higher for your profile.",
+  sb_quickNote: "Others use a quick score from market data only.", sb_sameNote: "Scored the same way, for the same profile.",
+  sb_pfIssues: "Top issues", sb_pfFixes: "First fixes", sb_pfNone: "No portfolio-level problems.", sb_pfEmpty: "Add holdings and ask the analyst.",
+};
+const elSb = {
+  sb_market: "Εικόνα αγοράς", sb_sp500: "S&P 500 (SPY)", sb_nasdaq: "Nasdaq 100 (QQQ)", sb_btc: "Bitcoin", sb_total: "Αγορά κρυπτο",
+  sb_week: "1 εβδομάδα", sb_24h: "24 ώρες", sb_btcDom: (d) => `Το Bitcoin είναι το ${d}%`, sb_needKey: "Βάλε δωρεάν κλειδί",
+  sb_fng: "Crypto Fear & Greed", sb_fng_xfear: "Ακραίος φόβος", sb_fng_fear: "Φόβος", sb_fng_neutral: "Ουδέτερο", sb_fng_greed: "Απληστία", sb_fng_xgreed: "Ακραία απληστία",
+  sb_sources: "CoinGecko και alternative.me. Οι δύο δείκτες παρακολουθούνται μέσω των fund τους, με το δικό σου κλειδί Alpha Vantage.",
+  sb_glance: "Με μια ματιά", sb_topRisks: "Κύριοι κίνδυνοι",
+  sb_similar: (g) => `Με καλύτερο σκορ στο ${g}`, sb_similarNone: "Τίποτα σε αυτή την ομάδα δεν έχει καλύτερο σκορ για το προφίλ σου.",
+  sb_quickNote: "Τα υπόλοιπα έχουν γρήγορο σκορ μόνο από δεδομένα αγοράς.", sb_sameNote: "Ίδια βαθμολόγηση, για το ίδιο προφίλ.",
+  sb_pfIssues: "Κύρια προβλήματα", sb_pfFixes: "Πρώτες διορθώσεις", sb_pfNone: "Κανένα πρόβλημα στο σύνολο.", sb_pfEmpty: "Πρόσθεσε θέσεις και ρώτα τον αναλυτή.",
+};
+
+Object.assign(en, enUi, enPf, enSb);
+Object.assign(el, elUi, elPf, elSb);
 Object.assign(LANGS.en, en);
 Object.assign(LANGS.el, el);
 export const MARKET_KEYS = { en, el };

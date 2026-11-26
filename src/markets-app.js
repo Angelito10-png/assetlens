@@ -10,6 +10,7 @@ import { loadSnapshot, weeklyBars, cachedBars, getKey, setKey, callsToday, FREE_
 import { priceStats } from "./prices.js?v=__V__";
 import { fmtBig, fmtPct } from "./engine.js?v=__V__";
 import { QUESTIONS, PROFILE_KEYS, quizResult } from "./quiz.js?v=__V__";
+import { mountRails, loadMarket, refreshFunds, renderMarket, renderGlance, pickSimilar, topRisks } from "./sidebar.js?v=__V__";
 import { $, el, store, safeUrl, locale, priceFmt, barClass, ago, initChrome, applyStatic, dial, radar, backdropClose, closeBtn } from "./ui.js?v=__V__";
 
 const QUICK = ["AAPL", "MSFT", "NVDA", "KO", "JPM", "VOO", "QQQ", "SCHD"];
@@ -114,7 +115,7 @@ function renderKey() {
   const save = el("button", { type: "button", class: "primary" }, t("m_pxSave"));
   const rm = el("button", { type: "button", class: "ghost" }, t("m_pxRemove"));
   rm.hidden = !key;
-  save.addEventListener("click", () => { if (!input.value.trim()) return; setKey(input.value); renderKey(); if (current) analyze(current.t); });
+  save.addEventListener("click", () => { if (!input.value.trim()) return; setKey(input.value); renderKey(); if (current) analyze(current.t).then(refreshFunds); });
   rm.addEventListener("click", () => { setKey(""); renderKey(); });
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") save.click(); });
   const err = current && current.px && ["rate_limit", "bad_key", "not_found", "network", "http"].includes(current.px.status) ? el("p", { class: "notice", "data-k": "warn", style: "margin:0" }, t("m_pxErr_" + current.px.status)) : null;
@@ -178,6 +179,7 @@ function render() {
   const c = current.c, pk = profile(), r = M.score(c, pk, customWeights), [vText, vKey] = M.verdict(r.total);
   const P = M.KINDS[c.kind].profiles;
   const who = customWeights ? t("whoCustom") : t("whoProfile", r.profile.label);
+  glance(c, r, vText, vKey, who, pk);
   const all = PROFILE_KEYS.map((k) => [k, M.score(c, k).total, P[k].label]);
   if (customWeights) all.push(["custom", r.total, t("profile_custom")]);
   const card = el("div", { class: "panel scorecard" },
@@ -391,6 +393,18 @@ function renderMenu() {
   if (y) $("catPanel").querySelector(".drawer-body").scrollTop = y;
 }
 
+/* ---------- side column: at a glance + better-scoring assets in the same sector or category ---------- */
+function glance(c, r, vText, vKey, who, pk) {
+  const peers = c.kind === "stock" ? STOCKS.filter((s) => s[2] === c.sector).map((s) => s[0]) : ETFS.filter((e) => e.cat === c.cat).map((e) => e.t);
+  const scored = peers.map((tk) => { const a = tk === c.t ? c : assetWith(tk); return a ? { id: tk, score: M.score(a, pk, customWeights).total, label: tk, sub: a.name, onOpen: () => { analyze(tk); window.scrollTo({ top: 0, behavior: "smooth" }); } } : null; });
+  renderGlance({
+    title: c.t, sub: c.name, score: r.total, vKey, verdictText: t("fitFor", vText, who),
+    risks: topRisks(r.flags),
+    similarTitle: t("sb_similar", groupLabel(c)), similar: pickSimilar({ id: c.t, score: r.total }, scored),
+    similarEmpty: t("sb_similarNone"), note: t("sb_sameNote"),
+  });
+}
+
 /* ---------- profile quiz (same questions, stock-market wording) ---------- */
 let quizAnswers = [], quizShowResult = false;
 const qt = (k) => { const v = t("m" + k); return v === "m" + k ? t(k) : v; };
@@ -422,6 +436,7 @@ function renderQuizFoot() { const n = quizAnswers.filter((a) => Number.isInteger
 /* ---------- boot ---------- */
 function relabel() {
   applyStatic();
+  renderMarket();
   $("profNote").textContent = M.KINDS.stock.profiles[profile()].blurb;
   renderMenuNav(); renderMethod(); renderKey(); renderWeights();
   if ($("quiz").open) renderQuiz();
@@ -429,6 +444,10 @@ function relabel() {
 }
 async function init() {
   initChrome(relabel);
+  mountRails();
+  loadMarket({ funds: false });
+  const openKey = () => { if (location.hash === "#keyPanel") { $("keyPanel").open = true; $("keyPanel").scrollIntoView({ block: "start" }); } };
+  addEventListener("hashchange", openKey);
   const url = readUrl();
   const startProfile = (url.profile && M.KINDS.stock.profiles[url.profile] && url.profile) || store.get("cs-profile");
   if (startProfile && M.KINDS.stock.profiles[startProfile]) $("p-" + startProfile).checked = true;
@@ -449,6 +468,8 @@ async function init() {
   if (url.w) { const w = M.decodeWeights(kindOf(first), url.w); if (w) { current = { t: first, kind: kindOf(first) }; customWeights = w; $("weightsPanel").open = true; } }
   const keepW = customWeights;
   await analyze(first);
+  openKey();
+  refreshFunds(); // SPY is in the cache by now, so at most one call (QQQ)
   if (keepW) { customWeights = keepW; renderWeights(); render(); }
   for (const tk of url.vs) if (kindOf(tk) === current.kind && tk !== current.t) { const px = await loadPrices(tk); compare.push({ t: tk, c: assetWith(tk, px.bars) }); }
   if (compare.length) { render(); writeUrl(); }
