@@ -148,3 +148,14 @@ export function categoryCoins(categoryId, perPage = 50) {
 export function coinChart(id) {
   return getJson(`${CG}/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=365&interval=daily`, { maxAgeMs: 6 * 3600_000 });
 }
+
+/** Total crypto market cap and Bitcoin dominance. One call, cached 5 minutes. */
+export function globalMarket() {
+  return getJson(`${CG}/global`, { maxAgeMs: 5 * 60_000 });
+}
+
+/* ---------------- Fear & Greed (alternative.me, free, no key) ---------------- */
+
+export function fearGreed() {
+  return getJson("https://api.alternative.me/fng/?limit=1", { maxAgeMs: 30 * 60_000 });
+}

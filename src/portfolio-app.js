@@ -13,6 +13,7 @@ import { topCoins, marketsFor, coinChart } from "./api.js?v=__V__";
 import { priceStats, weeklySeries } from "./prices.js?v=__V__";
 import { fmtBig } from "./engine.js?v=__V__";
 import { $, el, store, initChrome, applyStatic, dial, locale } from "./ui.js?v=__V__";
+import { mountRails, loadMarket, refreshFunds, renderMarket, renderGlance } from "./sidebar.js?v=__V__";
 
 const STORE = "pf-holdings";
 const PROFILES = ["aggressive", "defensive", "longterm"];
@@ -145,6 +146,7 @@ async function run() {
     // Stablecoins behave like cash, not like crypto risk.
     items.forEach((x) => { if (x.stable) x.assetClass = "bonds"; });
     lastResult = { items, at: new Date() };
+    refreshFunds(); // SPY is cached by now
     status("live", t("p_done", new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" })));
   } catch (e) {
     status("error", t("p_failed"));
@@ -157,12 +159,19 @@ function status(s, text) { $("status").dataset.s = s; $("statusText").textConten
 /* ---------- the analyst's report ---------- */
 const CLASS_COLORS = { equity: "var(--s1)", bonds: "var(--s3)", gold: "var(--mid)", crypto: "var(--s2)" };
 function renderResult() {
-  if (!lastResult) { $("result").replaceChildren(); return; }
+  if (!lastResult) { $("result").replaceChildren(); renderGlance(null); return; }
   const pk = profile();
   const a = analyze(lastResult.items, pk);
-  if (a.empty) { $("result").replaceChildren(); return; }
+  if (a.empty) { $("result").replaceChildren(); renderGlance(null); return; }
   const P = M.KINDS.stock.profiles[pk];
   const v = C.verdict(a.score ?? 1);
+  renderGlance({
+    title: t("p_score"), sub: t("p_total", a.holdings, "$" + Math.round(a.total).toLocaleString("en-US")), score: a.score, vKey: v[1],
+    verdictText: t("fitFor", v[0], t("whoProfile", P.label)),
+    risksTitle: t("sb_pfIssues"), noRisks: t("sb_pfNone"),
+    risks: a.weaknesses.filter((w) => w.sev !== "info").slice(0, 3).map((w) => [w.sev, w.text]),
+    extra: { title: t("sb_pfFixes"), items: a.fixes.slice(0, 3).map((f) => f.text) },
+  });
   const noPx = lastResult.items.filter((x) => x.pxErr).map((x) => x.symbol);
   const bubble = el("div", { class: "bot" },
     el("div", { class: "bot-avatar", "aria-hidden": "true" }, botIcon()),
@@ -222,7 +231,7 @@ function renderKey() {
   const input = el("input", { type: "password", id: "avKey", autocomplete: "off", spellcheck: "false", placeholder: t("m_pxKeyPh") });
   const sv = el("button", { type: "button", class: "primary" }, t("m_pxSave"));
   const rm = el("button", { type: "button", class: "ghost" }, t("m_pxRemove")); rm.hidden = !key;
-  sv.addEventListener("click", () => { if (input.value.trim()) { setKey(input.value); renderKey(); if (lastResult) run(); } });
+  sv.addEventListener("click", () => { if (input.value.trim()) { setKey(input.value); renderKey(); if (lastResult) run(); else refreshFunds(); } });
   rm.addEventListener("click", () => { setKey(""); renderKey(); });
   $("keyBody").replaceChildren(
     el("p", { class: "muted", style: "margin:0;font-size:.85rem" }, t("p_pxHelp"), " ", el("a", { href: "https://www.alphavantage.co/support/#api-key", target: "_blank", rel: "noopener" }, t("m_pxGetKey"))),
@@ -241,7 +250,7 @@ function renderMethod() {
 }
 
 /* ---------- boot ---------- */
-function relabel() { applyStatic(); $("profNote").textContent = blurb(); renderExamples(); renderTable(); renderResult(); renderKey(); renderMethod(); writeUrl(); }
+function relabel() { applyStatic(); renderMarket(); $("profNote").textContent = blurb(); renderExamples(); renderTable(); renderResult(); renderKey(); renderMethod(); writeUrl(); }
 function renderExamples() {
   $("pfExamples").replaceChildren(el("span", { class: "muted", style: "font-size:.82rem" }, t("p_examples")), ...Object.keys(EXAMPLES).map((k) => {
     const b = el("button", { type: "button" }, t("p_ex_" + k));
@@ -251,6 +260,10 @@ function renderExamples() {
 }
 async function init() {
   initChrome(relabel);
+  mountRails();
+  loadMarket({ funds: false });
+  const openKey = () => { if (location.hash === "#keyPanel" && !$("keyPanel").hidden) { $("keyPanel").open = true; $("keyPanel").scrollIntoView({ block: "start" }); } };
+  addEventListener("hashchange", openKey);
   const p = new URLSearchParams(location.search);
   const start = (p.get("profile") && PROFILES.includes(p.get("profile")) && p.get("profile")) || store.get("cs-profile");
   if (start && PROFILES.includes(start)) $("p-" + start).checked = true;
@@ -264,6 +277,7 @@ async function init() {
   $("pfList").replaceChildren(...opts().map((v) => el("option", { value: v })));
   renderExamples(); renderTable(); renderMethod(); renderKey(); writeUrl();
   try { coins = (await topCoins()).map((r) => ({ id: r.id, name: r.name, symbol: (r.symbol || "").toUpperCase() })); $("pfList").replaceChildren(...opts().map((v) => el("option", { value: v }))); renderTable(); } catch { /* crypto names fall back to ids */ }
-  if (holdings.length) run();
+  if (holdings.length) await run(); else refreshFunds();
+  openKey();
 }
 init();

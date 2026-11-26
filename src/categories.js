@@ -33,3 +33,16 @@ export function rankRows(rows, profileKey, customWeights, sort = "mcap") {
   out.sort(sort === "score" ? (a, b) => b.total - a.total || mc(b) - mc(a) : (a, b) => mc(b) - mc(a));
   return out;
 }
+
+/** How CoinGecko names our categories on a coin's page, most specific first. */
+const NAME_MATCH = [
+  ["stable", /stablecoin/i], ["meme", /meme/i], ["privacy", /privacy/i], ["oracle", /oracle/i], ["rwa", /real world assets|\brwa\b/i],
+  ["ai", /artificial intelligence|\bai\b/i], ["depin", /depin/i], ["gaming", /gaming|gamefi/i], ["defi", /decentralized finance|\bdefi\b/i],
+  ["layer2", /layer 2|\bl2\b/i], ["layer1", /layer 1|\bl1\b/i],
+];
+/** The menu category a coin belongs to, from its CoinGecko category names, or null. */
+export function categoryOf(names) {
+  const list = (names || []).filter((x) => typeof x === "string");
+  for (const [key, re] of NAME_MATCH) if (list.some((n) => re.test(n))) return categoryByKey(key);
+  return null;
+}

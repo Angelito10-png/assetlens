@@ -35,6 +35,13 @@ The app has three sections, switched from the tabs at the top:
 
 Results are shareable: the URL carries the coin, profile, custom weights and compared coins, for example `?coin=ethereum&profile=defensive&vs=solana,chainlink&lang=el`.
 
+## Side columns
+
+On wide screens every page has two side columns. On smaller screens they move below the main content.
+
+- **Market overview (left):** S&P 500 and Nasdaq 100, followed through SPY and QQQ with the visitor's own price key (index prices can't be republished for free), Bitcoin, the total crypto market cap with Bitcoin's share (CoinGecko), and the crypto Fear & Greed index (alternative.me). Each source loads on its own, so one failure doesn't blank the rest.
+- **At a glance (right, stays in view):** the current asset's score, verdict and top three risks, plus up to three assets from the same sector, ETF category or crypto category that score higher for the chosen profile. On the portfolio page it shows the portfolio score, its main problems and the first fixes.
+
 ## Crypto scoring model
 
 | Factor | What it measures | Aggressive | Defensive | Long-term |
@@ -128,6 +135,7 @@ src/universe.js     the stock and ETF lists, sectors, ETF facts
 src/markets-api.js  snapshot loading, visitor's price key, local price cache
 src/markets-app.js, src/portfolio-app.js   the stocks & ETFs and portfolio pages
 src/ui.js           shared page parts: theme, language, dial, radar
+src/sidebar.js      side columns: market overview and the "at a glance" card
 src/i18n-markets.js English and Greek text for the two new sections
 src/watchlist.js    watchlist stored in localStorage: snapshots, price refresh, pure functions
 src/categories.js   category menu (CoinGecko category ids) and ranking with the quick score
@@ -146,7 +154,7 @@ tests/              unit tests for the engine, a regression test on real capture
 ## Run it locally
 
 ```bash
-npm test     # 50 unit tests, Node 20+
+npm test     # 57 unit tests, Node 20+
 npm start    # serves the site at http://localhost:3000
 ```
 
