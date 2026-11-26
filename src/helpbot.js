@@ -122,7 +122,7 @@ async function ask(question) {
       return;
     }
     const code = payload && payload.error;
-    if (code) why = String(code) + (payload.status ? " " + payload.status : "");
+    if (code) why = String(code) + (payload.status ? " " + payload.status : "") + (payload.reason ? " " + payload.reason : "");
     if (code === "limit") lead = t("hb_err_limit", payload.limit || 15);
     else if (code === "busy") lead = t("hb_err_busy");
     else if (code === "blocked") { wait.remove(); addMsg("hb-bot", h("p", {}, t("hb_err_blocked"))); return; }

@@ -49,6 +49,9 @@ test("ask function: prompt is clipped, grounded and keeps the rules", () => {
   assert.match(request.systemInstruction.parts[0].text, /Never tell the user to buy, sell or hold/);
   assert.equal(readAnswer({ candidates: [{ content: { parts: [{ text: " Hi " }] } }] }).text, "Hi");
   assert.equal(readAnswer({ candidates: [{ finishReason: "SAFETY" }] }).blocked, true);
+  assert.equal(readAnswer({ candidates: [{ content: { parts: [{ text: "plan", thought: true }, { text: "Answer" }] } }] }).text, "Answer");
+  assert.equal(readAnswer({ candidates: [{ finishReason: "MAX_TOKENS", content: { parts: [] } }] }).reason, "MAX_TOKENS");
+  assert.equal(buildPrompt({ q: "x" }).request.generationConfig.thinkingConfig.thinkingBudget, 0);
 });
 
 test("ask function: needs a signed-in user, counts questions, stops at the limit", async () => {
