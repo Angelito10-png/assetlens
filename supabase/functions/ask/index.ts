@@ -54,7 +54,9 @@ export function buildPrompt(body) {
     request: {
       systemInstruction: { parts: [{ text: SYSTEM }] },
       contents: [...history, { role: "user", parts: [{ text: user }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
+      // Newer Flash models "think" first, and thinking tokens count against maxOutputTokens: with a small
+      // limit the model can stop before writing any answer. So thinking is turned off and the limit is roomy.
+      generationConfig: { temperature: 0.3, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } },
     },
   };
 }
@@ -63,8 +65,8 @@ export function buildPrompt(body) {
 export function readAnswer(j) {
   const c = j && Array.isArray(j.candidates) && j.candidates[0];
   if (!c) return { blocked: !!(j && j.promptFeedback && j.promptFeedback.blockReason) };
-  const text = ((c.content && c.content.parts) || []).map((p) => p.text || "").join("").trim();
-  return text ? { text } : { blocked: c.finishReason === "SAFETY" || c.finishReason === "PROHIBITED_CONTENT" };
+  const text = ((c.content && c.content.parts) || []).filter((p) => !p.thought).map((p) => p.text || "").join("").trim();
+  return text ? { text } : { blocked: c.finishReason === "SAFETY" || c.finishReason === "PROHIBITED_CONTENT", reason: c.finishReason || "" };
 }
 
 export async function handle(req, env, fetchImpl = fetch) {
@@ -99,9 +101,16 @@ export async function handle(req, env, fetchImpl = fetch) {
     method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY }, body: JSON.stringify(request),
   });
   if (r.status === 429) return json(429, { error: "busy" }, cors);
-  if (!r.ok) return json(502, { error: "model", status: r.status, detail: clip(await r.text(), 300) }, cors);
+  if (!r.ok) {
+    const detail = clip(await r.text(), 300);
+    console.error("ask: Gemini HTTP", r.status, model, detail); // shows in Supabase → Edge Functions → ask → Logs
+    return json(502, { error: "model", status: r.status, detail }, cors);
+  }
   const out = readAnswer(await r.json());
-  if (!out.text) return json(200, { error: out.blocked ? "blocked" : "empty_answer" }, cors);
+  if (!out.text) {
+    console.error("ask: no answer text from", model, "finishReason:", out.reason || "(none)", out.blocked ? "(blocked)" : "");
+    return json(200, { error: out.blocked ? "blocked" : "empty_answer", reason: out.reason }, cors);
+  }
   return json(200, { answer: out.text, used, limit }, cors);
 }
 

@@ -105,13 +105,14 @@ async function ask(question) {
   }
   busy = true; sendBtn.disabled = true;
   const wait = addMsg("hb-bot hb-pending", h("p", { class: "muted" }, t("hb_thinking")));
-  let lead = t("hb_err_off");
+  let lead = t("hb_err_off"), why = "network";
   try {
     const sb = await getClient();
     const { data, error } = await sb.functions.invoke("ask", {
       body: { q: question, lang, page: pageKey(location.pathname), context: screenText(document), kb: searchKb(question, lang, 4).map(({ q, a }) => ({ q, a })), history: history.slice(-6) },
     });
     let payload = data;
+    if (error) why = (error.context && error.context.status) ? "http " + error.context.status : (error.name || "error");
     if (error && error.context && typeof error.context.json === "function") { try { payload = await error.context.json(); } catch { /* not JSON */ } }
     if (payload && payload.answer) {
       wait.remove();
@@ -121,11 +122,13 @@ async function ask(question) {
       return;
     }
     const code = payload && payload.error;
+    if (code) why = String(code) + (payload.status ? " " + payload.status : "") + (payload.reason ? " " + payload.reason : "");
     if (code === "limit") lead = t("hb_err_limit", payload.limit || 15);
     else if (code === "busy") lead = t("hb_err_busy");
     else if (code === "blocked") { wait.remove(); addMsg("hb-bot", h("p", {}, t("hb_err_blocked"))); return; }
   } catch { /* network or function missing: fall back to the help text */ } finally { busy = false; sendBtn.disabled = false; }
   wait.remove();
+  if (lead === t("hb_err_off")) lead += " [" + why + "]";
   addMsg("hb-bot", ...kbAnswer(matches, matches.length ? lead : null));
 }
 
