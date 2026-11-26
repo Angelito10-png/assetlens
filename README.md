@@ -159,7 +159,7 @@ Log in and sign up use [Supabase](https://supabase.com) (free tier): email and p
 ### Switching accounts on
 
 1. Create a free project at supabase.com.
-2. In **SQL Editor**, run [`docs/supabase.sql`](docs/supabase.sql). It creates the table and its row-level security policies.
+2. In **SQL Editor**, run [`docs/supabase.sql`](docs/supabase.sql). It creates the table, grants signed-in users access to it (newer projects no longer do this automatically) and adds the row-level security policies. It is safe to run again.
 3. In **Authentication → URL Configuration**, set the Site URL to the address of the site (for the demo, `https://angelito10-png.github.io/assetlens/`) and add the same address to the redirect URLs.
 4. Optionally, in **Authentication → Sign In / Providers → Email**, turn off "Confirm email" so new accounts can log in at once (the free plan sends only a few emails an hour).
 5. In **Project Settings → API**, copy the project URL and the anon (or publishable) key, and add them to the GitHub repository as **variables** (Settings → Secrets and variables → Actions → Variables) named `SUPABASE_URL` and `SUPABASE_ANON_KEY`. The deploy job writes them into `src/config.js`.

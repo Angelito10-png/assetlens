@@ -62,7 +62,8 @@ export function errorKey(err) {
 
 /* ---------------------------------------------------------------- client */
 
-let client = null, user = null, lastSync = null, syncState = "idle", pushTimer = null, recovering = false;
+let client = null, user = null, lastSync = null, syncState = "idle", syncErr = "", pushTimer = null, recovering = false;
+const errText = (e) => String((e && (e.message || e.code)) || e || "").slice(0, 160);
 
 async function getClient() {
   if (client) return client;
@@ -81,7 +82,7 @@ async function pullAndMerge() {
   const changed = Object.keys(m.writeLocal);
   for (const k of changed) rawSet(k, m.writeLocal[k]);
   if (m.push || !row) await push(true);
-  else { lastSync = Date.now(); syncState = "ok"; }
+  else { lastSync = Date.now(); syncState = "ok"; syncErr = ""; }
   return changed.length > 0;
 }
 
@@ -93,8 +94,8 @@ async function push(now) {
     const sb = await getClient();
     const { error } = await sb.from(TABLE).upsert({ user_id: user.id, data: snapshot(local()), updated_at: new Date().toISOString() });
     if (error) throw error;
-    lastSync = Date.now(); syncState = "ok";
-  } catch { syncState = "error"; }
+    lastSync = Date.now(); syncState = "ok"; syncErr = "";
+  } catch (e) { syncState = "error"; syncErr = errText(e); }
   renderPanel();
 }
 
@@ -156,6 +157,7 @@ function renderPanel() {
     body = [head(t("ac_account")), h("div", { class: "ac-body" },
       h("p", {}, h("b", {}, t("ac_signedInAs", user.email))),
       st ? h("p", { class: "muted ac-sync" + (syncState === "error" ? " err" : "") }, st) : null,
+      syncState === "error" && syncErr ? h("p", { class: "muted ac-hint" }, syncErr) : null,
       h("p", { class: "muted" }, t("ac_whatSaved")), note,
       h("div", { class: "ac-row" }, out, wipe))];
   } else if (view === "reset") {
@@ -265,6 +267,8 @@ export function openAccount(which = "login") {
   msg = null;
   dlg.showModal();
   renderPanel();
+  // a save that failed earlier (offline, database not ready yet) is retried when the panel opens
+  if (user && syncState === "error") pullAndMerge().then(() => renderPanel()).catch((e) => { syncState = "error"; syncErr = errText(e); renderPanel(); });
 }
 
 /** Add the account button next to the section links and restore a saved session. */
@@ -297,7 +301,7 @@ export function mountAccount() {
           // the page read its data before the account's arrived: reload once to show it
           if (changed && !sessionStorage.getItem("al-synced-" + user.id)) { sessionStorage.setItem("al-synced-" + user.id, "1"); location.reload(); }
           else { sessionStorage.setItem("al-synced-" + user.id, "1"); renderPanel(); }
-        }).catch(() => { syncState = "error"; renderPanel(); }), 0);
+        }).catch((e) => { syncState = "error"; syncErr = errText(e); renderPanel(); }), 0);
         if (dlg.open && !recovering && event === "SIGNED_IN") setTimeout(() => dlg.close(), 600);
       }
       if (!user && was) { sessionStorage.removeItem("al-synced-" + was.id); }
