@@ -1,0 +1,22 @@
+# Temporary: builds the markets snapshot on the feature branch and commits it, for local development.
+name: Markets snapshot (dev)
+on:
+  push:
+    branches: ["claude/**"]
+    paths: ["scripts/**", "src/universe.js", ".github/workflows/snapshot-dev.yml"]
+permissions:
+  contents: write
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: mkdir -p data && node scripts/fetch-markets.mjs data/markets.dev.json
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/markets.dev.json
+          git commit -m "Dev snapshot of markets data" && git push || echo "nothing to commit"
