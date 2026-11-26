@@ -2,13 +2,16 @@
 
 **AssetLens** scores any cryptocurrency, US stock or ETF from 1 to 10 for **your** investor profile (aggressive, defensive or long-term), and gives a rule-based analyst's opinion on your whole portfolio. Every point of every score is explained: you see each factor's sub-score, its weight for your profile, and the raw numbers behind it.
 
-The app has three sections, switched from the tabs at the top:
+The site has a home page that explains the app in plain words, and four sections, switched from the tabs at the top:
 
-| Section | What it scores | Data |
+| Section | What it does | Data |
 |---|---|---|
-| **Crypto** | Any coin listed on CoinGecko | CoinGecko market data, GitHub development activity |
-| **Stocks & ETFs** | 90 large US stocks and 34 popular ETFs | SEC EDGAR financial statements, weekly prices from Alpha Vantage |
-| **Portfolio** | Stocks, ETFs and crypto held together | All of the above |
+| **Crypto** | Scores any coin listed on CoinGecko | CoinGecko market data, GitHub development activity |
+| **Stocks & ETFs** | Scores large US stocks, popular ETFs and commodity funds (gold, silver, copper, oil…) | SEC EDGAR financial statements, weekly prices from Alpha Vantage |
+| **Portfolio** | Checks stocks, ETFs, commodities and crypto held together | All of the above |
+| **How to invest** | Explains investing strategies, calculates a monthly plan, backtests it on real prices | Weekly prices from Alpha Vantage |
+
+Visitors can create a free account (email and password) so their portfolio, watchlists, profile, plan and settings follow them to any device. Without one, everything is kept in the browser.
 
 **Live demo:** https://angelito10-png.github.io/assetlens/
 
@@ -133,14 +136,45 @@ Other rules: a 3 to 15% gold position counts as a strength for defensive and lon
 
 **Portfolio score** = the value-weighted average of the holdings' scores, minus 1 point for each serious problem and 0.5 for each moderate one (at most 3). A portfolio of great companies can still be a poor fit if one of them is 60% of a defensive investor's money. Volatility uses the covariance of weekly returns when prices are available, so diversification shows up in the number.
 
-Holdings stay in the browser and in the URL (`?h=s:AAPL:5000,e:VOO:10000,c:bitcoin:2000`), so a portfolio can be shared as a link.
+Holdings stay in the browser (and in your account when you log in) and in the URL (`?h=s:AAPL:5000,e:VOO:10000,c:bitcoin:2000`), so a portfolio can be shared as a link.
+
+## How to invest
+
+A plain-language guide to seven ways of investing (monthly investing / dollar-cost averaging, lump sum, value averaging, buy and hold with index funds, core and satellite, rebalancing, reinvesting income), each with what it is good for and what to watch out for, and a short "which one fits you".
+
+- **Calculator.** Monthly amount, years, expected yearly return (with typical long-run returns as presets), starting amount, a yearly raise of the monthly amount, and inflation. It shows money put in, final value, gain, the value in today's money, the same total invested at once for comparison, a chart with a hover read-out, and a year-by-year table. In goal mode it works backwards: the monthly amount needed for a target, and the yearly return needed with the current monthly amount.
+- **Backtest on real history.** Pick a fund or stock and see what investing a fixed amount on the first trading week of every month would have done over up to 20 years, using adjusted prices (dividends reinvested). It compares the result with investing the same total on day one and shows the worst moment of the plan, when it was furthest below the money put in.
+
+The maths is in `src/dca.js` (pure functions, unit-tested against the closed-form annuity formula).
+
+## Accounts
+
+Log in and sign up use [Supabase](https://supabase.com) (free tier): email and password authentication plus one Postgres table, `user_data`, with a JSON column holding the synced keys. Row-level security lets each signed-in user read and write only their own row, so the project URL and the anon (publishable) key can safely be in the browser.
+
+- **What is synced:** portfolio, both watchlists, investor profile, investing plan, language and theme. The Alpha Vantage key never leaves the browser.
+- **How:** the app keeps using `localStorage`. On log in, what the account holds wins and anything it lacks is filled from the browser (so a first sign-up uploads what you already entered); after that, every change to a synced key is saved within a couple of seconds.
+- **Also:** password reset by email, log out, and "delete my saved data".
+- **Without settings** (a fork, or local development) the account button says data is kept in the browser and nothing else changes.
+
+### Switching accounts on
+
+1. Create a free project at supabase.com.
+2. In **SQL Editor**, run [`docs/supabase.sql`](docs/supabase.sql). It creates the table and its row-level security policies.
+3. In **Authentication → URL Configuration**, set the Site URL to the address of the site (for the demo, `https://angelito10-png.github.io/assetlens/`) and add the same address to the redirect URLs.
+4. Optionally, in **Authentication → Sign In / Providers → Email**, turn off "Confirm email" so new accounts can log in at once (the free plan sends only a few emails an hour).
+5. In **Project Settings → API**, copy the project URL and the anon (or publishable) key, and add them to the GitHub repository as **variables** (Settings → Secrets and variables → Actions → Variables) named `SUPABASE_URL` and `SUPABASE_ANON_KEY`. The deploy job writes them into `src/config.js`.
 
 ## Architecture
 
-No framework, no chart library, no build step, no backend. The radar chart is hand-built SVG. It is a static site of plain ES modules, so it deploys anywhere.
+No framework, no chart library, no build step, and no server of its own (accounts use Supabase's hosted API). The radar chart is hand-built SVG. It is a static site of plain ES modules, so it deploys anywhere.
 
 ```
-index.html          crypto page shell (markets.html and portfolio.html share it)
+index.html          home page
+crypto.html, markets.html, portfolio.html, invest.html   the four sections (old ?coin= links on / are forwarded to crypto.html)
+src/home.js, src/invest-app.js   the home page and the investing guide, calculator and backtest
+src/dca.js          monthly plan, goal, required return and backtest maths: pure functions
+src/account.js, src/config.js   accounts: Supabase sign-in, sync of saved data, settings filled at deploy
+src/i18n-site.js    English and Greek text for the home page, guide and accounts
 styles.css          design tokens (light and dark themes) and layout
 src/engine.js       crypto scoring engine: pure functions, no DOM or network
 src/markets-engine.js  stock and ETF factors, profiles and caps
@@ -169,7 +203,7 @@ tests/              unit tests for the engine, a regression test on real capture
 ## Run it locally
 
 ```bash
-npm test     # 60 unit tests, Node 20+
+npm test     # 67 unit tests, Node 20+
 npm start    # serves the site at http://localhost:3000
 ```
 

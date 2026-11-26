@@ -14,9 +14,11 @@
 <body>
 <div class="wrap">
   <nav class="sections" data-i18n-aria="navAria" aria-label="Sections">
-    <a data-nav="./" href="./" data-i18n="nav_crypto">Crypto</a>
+    <a data-nav="./" href="./" data-i18n="nav_home">Home</a>
+    <a data-nav="crypto.html" href="crypto.html" data-i18n="nav_crypto">Crypto</a>
     <a data-nav="markets.html" href="markets.html" data-i18n="nav_markets">Stocks &amp; ETFs</a>
     <a data-nav="portfolio.html" href="portfolio.html" aria-current="page" data-i18n="nav_portfolio">Portfolio</a>
+    <a data-nav="invest.html" href="invest.html" data-i18n="nav_invest">How to invest</a>
   </nav>
   <header class="top">
     <div>
@@ -77,9 +79,10 @@
     <div class="method-body" id="methodBody"></div>
   </details>
 
-  <p class="foot"><span data-i18n="p_footer">A rule-based analyst: every sentence comes from a fixed rule applied to your numbers, so the same portfolio always gets the same advice. Holdings are saved in this browser only. This is a portfolio project and an analysis aid, not financial advice.</span> <a href="https://github.com/Angelito10-png/assetlens" target="_blank" rel="noopener" data-i18n="sourceCode">Source code</a></p>
+  <p class="foot"><span data-i18n="p_footer">A rule-based analyst: every sentence comes from a fixed rule applied to your numbers, so the same portfolio always gets the same advice. Holdings are saved in this browser, and in your account when you log in. This is a portfolio project and an analysis aid, not financial advice.</span> <a href="https://github.com/Angelito10-png/assetlens" target="_blank" rel="noopener" data-i18n="sourceCode">Source code</a></p>
 </div>
 <datalist id="pfList"></datalist>
 <script type="module" src="src/portfolio-app.js?v=__V__"></script>
+<script type="module" src="src/account.js?v=__V__"></script>
 </body>
 </html>

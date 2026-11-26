@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AssetLens · Crypto</title>
+<meta name="description" content="Score any cryptocurrency from 1 to 10 for your investor profile, using live CoinGecko market data and GitHub development activity, with a transparent per-factor rationale.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%230c6b67' stroke-width='5' stroke-dasharray='60 82' transform='rotate(-90 16 16)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=__V__">
+<script>try{var th=localStorage.getItem("cs-theme");if(th==="light"||th==="dark")document.documentElement.dataset.theme=th;}catch(e){}</script>
+</head>
+<body>
+<div class="wrap">
+  <nav class="sections" data-i18n-aria="navAria" aria-label="Sections">
+    <a data-nav="./" href="./" data-i18n="nav_home">Home</a>
+    <a data-nav="crypto.html" href="crypto.html" aria-current="page" data-i18n="nav_crypto">Crypto</a>
+    <a data-nav="markets.html" href="markets.html" data-i18n="nav_markets">Stocks &amp; ETFs</a>
+    <a data-nav="portfolio.html" href="portfolio.html" data-i18n="nav_portfolio">Portfolio</a>
+    <a data-nav="invest.html" href="invest.html" data-i18n="nav_invest">How to invest</a>
+  </nav>
+  <header class="top">
+    <div>
+      <div class="eyebrow" data-i18n="eyebrow">Crypto investment viability</div>
+      <h1>AssetLens</h1>
+      <p data-i18n="lede">Pick a coin and your investor profile. The score is built from live CoinGecko and GitHub data, and every factor shows the numbers behind it.</p>
+    </div>
+    <div class="top-side">
+      <div class="toggles">
+        <div class="tgl" role="group" data-i18n-aria="language" aria-label="Language">
+          <button type="button" data-lang="en" aria-pressed="true" lang="en">EN</button>
+          <button type="button" data-lang="el" aria-pressed="false" lang="el">ΕΛ</button>
+        </div>
+        <div class="tgl" role="group" data-i18n-aria="theme" aria-label="Theme">
+          <button type="button" data-theme-btn="system" aria-pressed="true" data-i18n-aria="themeSystem" aria-label="System" title="System"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"/><path d="M5.5 14h5M8 11.5V14"/></svg></button>
+          <button type="button" data-theme-btn="light" aria-pressed="false" data-i18n-aria="themeLight" aria-label="Light" title="Light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"/></svg></button>
+          <button type="button" data-theme-btn="dark" aria-pressed="false" data-i18n-aria="themeDark" aria-label="Dark" title="Dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 10A6 6 0 0 1 6 2.5a6 6 0 1 0 7.5 7.5z"/></svg></button>
+        </div>
+        <button type="button" class="star-btn" id="watchOpen" aria-haspopup="dialog" data-i18n-aria="watchlist" aria-label="Watchlist" title="Watchlist"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6l1.9 4 4.4.5-3.2 3 .8 4.4L8 11.4l-3.9 2.1.8-4.4-3.2-3 4.4-.5z"/></svg><span class="star-count" id="watchCount" hidden>0</span></button>
+      </div>
+      <span class="status" id="status" data-s="idle"><i></i><span id="statusText" data-i18n="waiting">Waiting for data</span></span>
+    </div>
+  </header>
+
+  <nav class="cats-nav" id="catsNav" data-i18n-aria="catNavAria" aria-label="Browse coins by category"></nav>
+
+  <section class="panel controls" aria-label="Choose a coin and profile" data-i18n-aria="controlsAria">
+    <div>
+      <label class="l" for="coin" data-i18n="cryptocurrency">Cryptocurrency</label>
+      <input type="text" id="coin" list="coinlist" placeholder="Bitcoin, ETH, solana…" data-i18n-ph="coinPlaceholder" autocomplete="off" value="Bitcoin (BTC)">
+      <datalist id="coinlist"></datalist>
+      <div class="quick" id="quick"></div>
+    </div>
+    <div>
+      <span class="l" id="profLabel" data-i18n="investorProfile">Investor profile</span>
+      <div class="seg" role="radiogroup" aria-labelledby="profLabel">
+        <label><input type="radio" name="profile" id="p-aggressive" value="aggressive"><span data-i18n="profile_aggressive">Aggressive</span></label>
+        <label><input type="radio" name="profile" id="p-defensive" value="defensive"><span data-i18n="profile_defensive">Defensive</span></label>
+        <label><input type="radio" name="profile" id="p-longterm" value="longterm" checked><span data-i18n="profile_longterm">Long-term</span></label>
+      </div>
+      <div class="seg-note" id="profNote"></div>
+      <button type="button" class="linkbtn" id="quizBtn" data-i18n="quizOpen">Not sure? Take the 5-question quiz</button>
+    </div>
+    <button class="primary" id="go" type="button" data-i18n="analyze">Analyze</button>
+  </section>
+
+  <details class="panel weights" id="weightsPanel">
+    <summary data-i18n="adjustWeights">Adjust weights</summary>
+    <div id="weightsBody"></div>
+  </details>
+
+  <div id="notice" hidden></div>
+  <div id="result"><div class="panel skeleton" id="skeleton" data-i18n="loadingFirst">Loading Bitcoin from CoinGecko…</div></div>
+
+  <details class="panel method" id="method">
+    <summary data-i18n="howScoreWorks">How the score works</summary>
+    <div class="method-body" id="methodBody"></div>
+  </details>
+
+  <p class="foot"><span data-i18n="footer">Data from the public CoinGecko and GitHub APIs, loaded live in your browser. This is a portfolio project and an analysis aid, not financial advice. Scores describe how well a coin fits a profile today; they do not predict prices.</span> <a href="https://github.com/Angelito10-png/assetlens" target="_blank" rel="noopener" data-i18n="sourceCode">Source code</a></p>
+</div>
+<dialog id="watchDrawer" class="drawer" aria-labelledby="watchTitle"><div id="watchPanel" class="drawer-card"></div></dialog>
+<dialog id="catDrawer" class="drawer" aria-labelledby="catTitle"><div id="catPanel" class="drawer-card"></div></dialog>
+<dialog id="quiz" class="quiz" aria-labelledby="quizTitle"></dialog>
+<script type="module" src="src/app.js?v=__V__"></script>
+<script type="module" src="src/account.js?v=__V__"></script>
+</body>
+</html>

@@ -23,9 +23,22 @@ jobs:
       - run: npm test
       - name: Collect site files
         run: |
-          mkdir _site && cp -r index.html markets.html portfolio.html styles.css src _site/
+          mkdir _site && cp -r index.html crypto.html markets.html portfolio.html invest.html styles.css src _site/
           # Cache-bust: stamp the commit into asset URLs so browsers never mix old and new files.
           sed -i "s/__V__/${GITHUB_SHA::7}/g" _site/*.html _site/src/*.js
+      - name: Switch on accounts (Supabase)
+        # The URL and the anon/publishable key are public by design (row-level security protects the data),
+        # so they live in repository variables, not secrets. Without them the site keeps data in the browser.
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            sed -i "s|__SUPABASE_URL__|${SUPABASE_URL%/}|; s|__SUPABASE_ANON_KEY__|${SUPABASE_ANON_KEY}|" _site/src/config.js
+            echo "Accounts on"
+          else
+            echo "No SUPABASE_URL / SUPABASE_ANON_KEY variables: accounts stay off"
+          fi
       - name: Fetch news headlines
         # The CryptoPanic key stays in a repository secret; only the resulting headlines are published.
         env:
