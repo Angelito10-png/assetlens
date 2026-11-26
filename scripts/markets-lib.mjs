@@ -33,7 +33,7 @@ function factsOf(cf, concept, unit = "USD") {
  * since companies sometimes tag a few quarters under a different name.
  */
 function bestConcept(cf, concepts, unit, flow = false) {
-  const lastEnd = (f, annualOnly) => { const l = annualOnly ? f.filter((x) => x.start && days(x.start, x.end) > 350) : f; return l.length ? l[l.length - 1].end : ""; };
+  const lastEnd = (f, annualOnly) => { const l = annualOnly ? f.filter((x) => x.start && days(x.start, x.end) > 350) : f; return l.length ? l[l.length - 1].end : "0000"; }; // "0000" so a concept without annual data never wins on the date of its quarters
   let best = [];
   for (const c of concepts) {
     const f = factsOf(cf, c, unit);
@@ -79,9 +79,11 @@ function latestInstant(facts) {
  * count in millions by mistake, so values under a million are ignored.
  */
 function pickShares(weighted, dei, bsDate) {
-  if (dei && dei.val > 1e6 && (!bsDate || Math.abs(days(dei.end, bsDate)) < 200)) return dei.val;
   const ok = weighted.filter((f) => f.val > 1e6);
-  return ok.length ? ok[ok.length - 1].val : dei && dei.val > 1e6 ? dei.val : null;
+  const w = ok.length ? ok[ok.length - 1].val : null;
+  // Companies with several share classes report one class on the cover page; the diluted count covers all of them.
+  if (dei && dei.val > 1e6 && (!bsDate || Math.abs(days(dei.end, bsDate)) < 200) && !(w && dei.val < 0.8 * w)) return dei.val;
+  return w ?? (dei && dei.val > 1e6 ? dei.val : null);
 }
 
 const REVENUE = ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "SalesRevenueNet", "RevenueFromContractWithCustomerIncludingAssessedTax", "RevenuesNetOfInterestExpense", "SalesRevenueGoodsNet"];

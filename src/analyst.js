@@ -56,7 +56,7 @@ function wavg(holdings, total, get) {
 }
 
 /** The full analysis. Returns numbers plus three lists of { key, text } sentences. */
-export function analyze(holdings, profileKey) {
+export function analyze(holdings, profileKey, inner = false) {
   const hs = holdings.filter((h) => h && h.value > 0);
   const L = LIMITS[profileKey];
   const out = { profile: profileKey, holdings: hs.length, strengths: [], weaknesses: [], fixes: [] };
@@ -69,8 +69,7 @@ export function analyze(holdings, profileKey) {
 
   // ---- overall score: value-weighted average of the holdings' scores for this profile
   const sc = wavg(hs, ex.total, (h) => h.scores && h.scores[profileKey]);
-  out.score = sc ? Math.round(sc.value * 10) / 10 : null;
-  out.scores = Object.fromEntries(Object.keys(LIMITS).map((k) => { const v = wavg(hs, ex.total, (h) => h.scores && h.scores[k]); return [k, v ? Math.round(v.value * 10) / 10 : null]; }));
+  out.holdingsScore = sc ? Math.round(sc.value * 10) / 10 : null;
 
   // ---- risk: volatility from weekly returns and correlations where possible
   const pv = portfolioVol(hs.map((h) => ({ w: h.value, series: h.series })));
@@ -168,6 +167,12 @@ export function analyze(holdings, profileKey) {
   // ---- data gaps
   const noPx = hs.filter((h) => h.kind !== "crypto" && !h.series && h.vol == null).map((h) => h.symbol);
   if (noPx.length) out.gaps = noPx;
+
+  // ---- portfolio score: the holdings' average, minus points for portfolio-level problems
+  // (a great stock is still a poor fit if it is 60% of a defensive portfolio).
+  out.penalty = Math.min(3, out.weaknesses.reduce((p, w) => p + (w.sev === "high" ? 1 : w.sev === "mid" ? 0.5 : 0), 0));
+  out.score = out.holdingsScore === null ? null : Math.max(1, Math.round((out.holdingsScore - out.penalty) * 10) / 10);
+  if (!inner) out.scores = Object.fromEntries(Object.keys(LIMITS).map((k) => [k, k === profileKey ? out.score : analyze(holdings, k, true).score]));
 
   const order = { high: 0, mid: 1, info: 2 };
   out.weaknesses.sort((a, b) => order[a.sev] - order[b.sev]);
