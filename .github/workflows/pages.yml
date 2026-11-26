@@ -53,6 +53,12 @@ jobs:
           ALPHAVANTAGE_PUBLISH: ${{ vars.ALPHAVANTAGE_PUBLISH }}
         run: |
           node scripts/fetch-markets.mjs _site/markets.json || curl -fsS -o _site/markets.json https://angelito10-png.github.io/assetlens/markets.json || echo "No markets snapshot this run"
+      - name: Build the crypto score backtest (CoinGecko, weekly)
+        # Rebuilt at most once a week (the script keeps the published file while it is under 6 days old).
+        # The public CoinGecko API is slow on purpose, so this can take a few minutes; it never fails the deploy.
+        run: |
+          curl -fsS -o prev-backtest.json https://angelito10-png.github.io/assetlens/backtest.json || rm -f prev-backtest.json
+          timeout 20m node scripts/fetch-backtest.mjs _site/backtest.json prev-backtest.json || cp prev-backtest.json _site/backtest.json || echo "No backtest this run"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

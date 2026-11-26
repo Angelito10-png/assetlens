@@ -14,6 +14,9 @@ import { priceStats, weeklySeries } from "./prices.js?v=__V__";
 import { fmtBig } from "./engine.js?v=__V__";
 import { $, el, store, initChrome, applyStatic, dial, locale } from "./ui.js?v=__V__";
 import { mountRails, loadMarket, refreshFunds, renderMarket, renderGlance } from "./sidebar.js?v=__V__";
+import "./i18n-backtest.js?v=__V__";
+import { portfolioHistory } from "./backtest.js?v=__V__";
+import { lineChart } from "./linechart.js?v=__V__";
 
 const STORE = "pf-holdings";
 const PROFILES = ["aggressive", "defensive", "longterm"];
@@ -24,7 +27,7 @@ const EXAMPLES = {
 };
 let holdings = []; // [{ kind, id, value }]
 let coins = []; // CoinGecko top list
-let snap = null, spyBars = null, lastResult = null, busy = false;
+let snap = null, spyBars = null, lastResult = null, busy = false, histYears = 1;
 const profile = () => document.querySelector('input[name="profile"]:checked').value;
 const blurb = () => M.KINDS.stock.profiles[profile()].blurb;
 
@@ -106,7 +109,7 @@ async function stockOrEtf(h) {
   const bench = bars ? await loadSpy() : null;
   const c = M.normalizeAsset({ ...entry, px: bars ? priceStats(bars, h.id === "SPY" ? null : bench) : null }, kind === "etf" && isCommodity(h.id) ? "commodity" : kind);
   const scores = Object.fromEntries(PROFILES.map((k) => [k, M.score(c, k).total]));
-  return { ...h, name: c.name, symbol: h.id, scores, partial: M.score(c, profile()).coverage < 100, sector: c.sector, cat: c.cat, er: c.er, yield: c.yield, vol: c.vol, series: bars ? weeklySeries(bars) : null, assetClass: c.assetClass, top: c.top, sectorMix: c.sectorMix, holdings: c.holdings, metal: c.metal || null, pxErr };
+  return { ...h, name: c.name, symbol: h.id, scores, partial: M.score(c, profile()).coverage < 100, sector: c.sector, cat: c.cat, er: c.er, yield: c.yield, vol: c.vol, series: bars ? weeklySeries(bars) : null, bars, assetClass: c.assetClass, top: c.top, sectorMix: c.sectorMix, holdings: c.holdings, metal: c.metal || null, pxErr };
 }
 
 /** Daily CoinGecko prices → Friday closes, so crypto lines up with the weekly stock data. */
@@ -120,15 +123,15 @@ async function cryptoHoldings(list) {
   const out = [];
   for (const h of list) {
     const row = rows.find((r) => r.id === h.id);
-    let series = null, vol = null;
+    let series = null, vol = null, bars = null;
     try {
-      const bars = fridayBars((await coinChart(h.id)).prices);
+      bars = fridayBars((await coinChart(h.id)).prices);
       series = weeklySeries(bars, 52);
       const st = priceStats(bars, null);
       vol = st ? st.vol : null;
     } catch { /* keep going without correlations */ }
     const scores = row ? Object.fromEntries(PROFILES.map((k) => [k, C.quickScore(row, k).total])) : {};
-    out.push({ ...h, name: row ? row.name : h.id, symbol: row ? row.symbol.toUpperCase() : h.id, scores, partial: true, assetClass: "crypto", vol, series, yield: 0, stable: row && /usd|dai/i.test(row.symbol) && Math.abs((row.price_change_percentage_24h || 0)) < 1 });
+    out.push({ ...h, name: row ? row.name : h.id, symbol: row ? row.symbol.toUpperCase() : h.id, scores, partial: true, assetClass: "crypto", vol, series, bars, yield: 0, stable: row && /usd|dai/i.test(row.symbol) && Math.abs((row.price_change_percentage_24h || 0)) < 1 });
   }
   return out;
 }
@@ -145,6 +148,7 @@ async function run() {
     const items = holdings.map((h) => [...markets, ...cryptos].find((x) => x.kind === h.kind && x.id === h.id)).filter(Boolean);
     // Stablecoins behave like cash, not like crypto risk.
     items.forEach((x) => { if (x.stable) x.assetClass = "bonds"; });
+    await loadSpy(); // benchmark for the history chart
     lastResult = { items, at: new Date() };
     refreshFunds(); // SPY is cached by now
     status("live", t("p_done", new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" })));
@@ -210,8 +214,48 @@ function renderResult() {
       el("section", { class: "panel" }, el("h2", { style: "margin-bottom:12px" }, t("p_numbers")), el("div", { class: "metrics pf-kpi" }, ...KPI.map(([k, val, sub]) => el("div", { class: "metric" }, el("span", { class: "k" }, k), el("span", { class: "v" }, val), sub ? el("small", { class: "muted" }, sub) : null))),
         el("p", { class: "muted", style: "margin:12px 0 0;font-size:.78rem" }, t("p_limits", P.label, L.vol, L.crypto, L.single, L.sector, L.safeMin))),
     ),
+    historyPanel(),
   ));
 }
+/* ---------- how today's mix did over the last 1–5 years, vs the S&P 500 ---------- */
+function historyPanel() {
+  const items = lastResult.items.map((x) => ({ symbol: x.symbol, value: holdings.find((h) => h.kind === x.kind && h.id === x.id)?.value || 0, bars: x.bars }));
+  const hist = portfolioHistory(items, spyBars, { years: histYears });
+  const buttons = el("div", { class: "ph-years", role: "group", "aria-label": t("ph_title") }, ...[1, 3, 5].map((n) => {
+    const b = el("button", { type: "button", "aria-pressed": String(n === histYears) }, t("ph_years", n));
+    b.addEventListener("click", () => { histYears = n; renderResult(); document.getElementById("phPanel")?.scrollIntoView({ block: "nearest" }); });
+    return b;
+  }));
+  const head = el("div", { class: "ph-head" }, el("h2", {}, t("ph_title")), buttons);
+  if (!hist) return el("section", { class: "panel ph", id: "phPanel" }, head, el("p", { class: "muted", style: "margin:12px 0 0" }, t("ph_none")));
+  const S = hist.stats, pct = (v) => (v === null || v === undefined ? "–" : (v > 0 ? "+" : "") + v.toFixed(1) + "%");
+  const cls = (v) => (v > 0 ? "up" : v < 0 ? "down" : "");
+  const day = (d) => new Date(d + "T12:00:00Z").toLocaleDateString(locale(), { day: "numeric", month: "short", year: "numeric" });
+  const series = [{ label: t("ph_port"), values: hist.port, color: "var(--s1)" }];
+  if (hist.bench) series.push({ label: t("ph_spy"), values: hist.bench, color: "var(--muted)", dash: true });
+  const rows = [["ph_r_total", "total"], ["ph_r_cagr", "cagr"], ["ph_r_dd", "maxDD"], ["ph_r_vol", "vol"]]
+    .filter(([, k]) => k !== "cagr" || S.port.cagr !== null)
+    .map(([lk, k]) => el("tr", {}, el("td", {}, t(lk)),
+      el("td", { class: "num " + (k === "vol" ? "" : cls(S.port[k])) }, k === "vol" ? (S.port.vol === null ? "–" : S.port.vol.toFixed(1) + "%") : pct(S.port[k])),
+      hist.bench ? el("td", { class: "num " + (k === "vol" ? "" : cls(S.bench[k])) }, k === "vol" ? (S.bench.vol === null ? "–" : S.bench.vol.toFixed(1) + "%") : pct(S.bench[k])) : null));
+  const notes = [
+    hist.bench ? t("ph_vs", S.port.total - S.bench.total) : t("ph_noBench"),
+    hist.shortened.length ? t("ph_short", hist.shortened.join(", "), day(hist.start)) : null,
+    hist.missing.length ? t("ph_missing", hist.missing.join(", ")) : null,
+    hist.covered < 100 ? t("ph_covered", hist.covered) : null,
+    t("ph_ddNote"),
+  ].filter(Boolean);
+  return el("section", { class: "panel ph", id: "phPanel" },
+    el("div", { class: "ph-body" },
+      head,
+      el("p", { class: "muted", style: "margin:0;font-size:.86rem" }, t("ph_note", day(hist.start))),
+      lineChart({ times: hist.times, series, aria: t("ph_aria") }),
+      el("div", { class: "tbl-wrap" }, el("table", { class: "ph-stats" },
+        el("thead", {}, el("tr", {}, el("th", {}, ""), el("th", { class: "num" }, t("ph_port")), hist.bench ? el("th", { class: "num" }, t("ph_spy")) : null)),
+        el("tbody", {}, ...rows))),
+      el("ul", { class: "ph-notes" }, ...notes.map((n) => el("li", {}, n)))));
+}
+
 function section(kind, title, items, empty) {
   return el("div", { class: "bot-sec " + kind }, el("h3", {}, title), items.length ? el("ul", {}, ...items.map((x) => el("li", { class: x.sev ? "sev-" + x.sev : "" }, x.text))) : el("p", { class: "muted", style: "margin:0" }, empty));
 }
